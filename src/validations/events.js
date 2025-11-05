@@ -10,7 +10,11 @@ const createEventValidation = [
   body('description')
     .optional()
     .isLength({ max: 500 })
-    .withMessage('Description cannot exceed 500 characters')
+    .withMessage('Description cannot exceed 500 characters'),
+  body('isSchoolEvent')
+    .optional()
+    .isBoolean()
+    .withMessage('isSchoolEvent must be a boolean value')
 ];
 
 const updateEventValidation = [
@@ -25,7 +29,11 @@ const updateEventValidation = [
   body('description')
     .optional()
     .isLength({ max: 500 })
-    .withMessage('Description cannot exceed 500 characters')
+    .withMessage('Description cannot exceed 500 characters'),
+  body('isSchoolEvent')
+    .optional()
+    .isBoolean()
+    .withMessage('isSchoolEvent must be a boolean value')
 ];
 
 module.exports = {

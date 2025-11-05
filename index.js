@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const cron = require('node-cron');
 const connectDB = require('./src/config/database');
 const app = express();
@@ -9,11 +10,17 @@ require('dotenv').config()
 connectDB();
 
 // Middleware
+app.use(cors({
+  origin: ['http://localhost:8081', 'http://localhost:3000', 'http://localhost:19006'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/events', require('./src/routes/events'));
+app.use('/api/school-info', require('./src/routes/schoolInfo'));
+app.use('/api/users', require('./src/routes/users'));
 
 app.get('/', (req, res) => {
   res.send('Hello from Express Backend!');

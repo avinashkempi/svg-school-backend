@@ -11,16 +11,33 @@ const authenticateToken = (req, res, next) => {
     });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, payload) => {
     if (err) {
       return res.status(403).json({
         success: false,
         message: 'Invalid or expired token'
       });
     }
-    req.user = user;
+    // Attach decoded payload to req.user. Payload includes role when issued from authController.
+    req.user = payload;
     next();
   });
 };
 
-module.exports = authenticateToken;
+// Middleware to allow only admin or super admin users
+const requireAdmin = (req, res, next) => {
+  // Ensure token was verified and req.user exists
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Access token required' });
+  }
+
+  const { role } = req.user;
+  if (role === 'admin' || role === 'super admin') return next();
+
+  return res.status(403).json({ success: false, message: 'Admin privileges required' });
+};
+
+module.exports = {
+  authenticateToken,
+  requireAdmin
+};

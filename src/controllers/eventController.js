@@ -14,13 +14,14 @@ const createEvent = async (req, res) => {
       });
     }
 
-    const { title, date, description } = req.body;
+    const { title, date, description, isSchoolEvent } = req.body;
 
     // Create new event
     const event = new Event({
       title,
       date,
       description,
+      isSchoolEvent: isSchoolEvent !== undefined ? isSchoolEvent : false,
       createdBy: req.user.userId
     });
     await event.save();
@@ -122,7 +123,7 @@ const updateEvent = async (req, res) => {
     }
 
     const eventId = req.params.id;
-    const { title, date, description } = req.body;
+    const { title, date, description, isSchoolEvent } = req.body;
 
     // Find the event and check if it belongs to the user
     const event = await Event.findOne({ _id: eventId, createdBy: req.user.userId });
@@ -137,6 +138,7 @@ const updateEvent = async (req, res) => {
     if (title !== undefined) event.title = title;
     if (date !== undefined) event.date = date;
     if (description !== undefined) event.description = description;
+    if (isSchoolEvent !== undefined) event.isSchoolEvent = isSchoolEvent;
 
     await event.save();
 
