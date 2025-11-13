@@ -18,13 +18,13 @@ const createAdminUser = async () => {
     // Check if admin user already exists
     const existingAdmin = await User.findOne({ role: 'admin' });
     if (existingAdmin) {
-      console.log('ℹ️ Admin user already exists:', existingAdmin.username);
+      console.log('ℹ️ Admin user already exists:', existingAdmin.name);
       return;
     }
 
     // Create new admin user
     const adminUser = new User({
-      username: 'adminuser',
+      name: 'Admin User',
       email: 'admin@example.com',
       password: 'AdminPass123!',
       role: 'admin'
@@ -32,7 +32,7 @@ const createAdminUser = async () => {
 
     await adminUser.save();
     console.log('✅ Admin user created successfully!');
-    console.log('Username: adminuser');
+    console.log('Name: Admin User');
     console.log('Email: admin@example.com');
     console.log('Password: AdminPass123!');
     console.log('Role: admin');

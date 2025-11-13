@@ -1,19 +1,25 @@
 const { body } = require('express-validator');
 
 const userValidation = [
-  body('username')
-    .optional()
+  body('name')
+    .notEmpty()
+    .withMessage('Name is required')
     .isLength({ min: 3, max: 50 })
-    .withMessage('Username must be between 3 and 50 characters')
-    .isAlphanumeric()
-    .withMessage('Username must contain only letters and numbers'),
+    .withMessage('Name must be between 3 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Name must contain only letters and spaces'),
+  body('phone')
+    .notEmpty()
+    .withMessage('Phone number is required')
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage('Please provide a valid 10-digit Indian phone number (starting with 6-9)'),
   body('email')
     .optional()
     .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .withMessage('Please provide a valid email'),
   body('password')
-    .optional()
+    .notEmpty()
+    .withMessage('Password is required')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
