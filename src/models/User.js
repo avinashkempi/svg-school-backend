@@ -2,21 +2,28 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  username: {
+  name: {
     type: String,
-    required: [true, 'Username is required'],
+    required: [true, 'Name is required'],
+    trim: true,
+    minlength: [3, 'Name must be at least 3 characters long'],
+    maxlength: [50, 'Name cannot exceed 50 characters']
+  },
+  phone: {
+    type: String,
+    required: [true, 'Phone number is required'],
     unique: true,
     trim: true,
-    minlength: [3, 'Username must be at least 3 characters long'],
-    maxlength: [50, 'Username cannot exceed 50 characters']
+    match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian phone number (starting with 6-9)']
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: false,
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+    sparse: true // Allows multiple null values for unique index
   },
   password: {
     type: String,

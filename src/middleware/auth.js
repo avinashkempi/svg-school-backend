@@ -24,6 +24,26 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Optional authentication middleware - sets req.user if token is valid, else null
+const optionalAuthenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, payload) => {
+    if (err) {
+      req.user = null;
+    } else {
+      req.user = payload;
+    }
+    next();
+  });
+};
+
 // Middleware to allow only admin or super admin users
 const requireAdmin = (req, res, next) => {
   // Ensure token was verified and req.user exists
@@ -39,5 +59,6 @@ const requireAdmin = (req, res, next) => {
 
 module.exports = {
   authenticateToken,
+  optionalAuthenticateToken,
   requireAdmin
 };

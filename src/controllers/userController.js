@@ -57,19 +57,30 @@ const createUser = async (req, res) => {
       });
     }
 
-    const { username, email, password, role } = req.body;
+    const { name, phone, email, password, role } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
+    // Check if user already exists by phone
+    const existingUserByPhone = await User.findOne({ phone });
+    if (existingUserByPhone) {
       return res.status(400).json({
         success: false,
-        message: 'User with this email or username already exists'
+        message: 'User with this phone number already exists'
       });
     }
 
+    // Check if email is provided and already exists
+    if (email) {
+      const existingUserByEmail = await User.findOne({ email });
+      if (existingUserByEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this email already exists'
+        });
+      }
+    }
+
     // Create new user
-    const user = new User({ username, email, password, role });
+    const user = new User({ name, phone, email, password, role });
     await user.save();
 
     res.status(201).json({
@@ -77,7 +88,8 @@ const createUser = async (req, res) => {
       message: 'User created successfully',
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
+        phone: user.phone,
         email: user.email,
         role: user.role
       }
@@ -105,7 +117,7 @@ const updateUser = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { username, email, role } = req.body;
+    const { name, email, role } = req.body;
 
     // Find user
     const user = await User.findById(id);
@@ -116,7 +128,7 @@ const updateUser = async (req, res) => {
       });
     }
 
-    // Check if updating email or username conflicts with existing users
+    // Check if updating email conflicts with existing users (only if email provided)
     if (email && email !== user.email) {
       const existingEmail = await User.findOne({ email, _id: { $ne: id } });
       if (existingEmail) {
@@ -127,18 +139,8 @@ const updateUser = async (req, res) => {
       }
     }
 
-    if (username && username !== user.username) {
-      const existingUsername = await User.findOne({ username, _id: { $ne: id } });
-      if (existingUsername) {
-        return res.status(400).json({
-          success: false,
-          message: 'Username already in use'
-        });
-      }
-    }
-
     // Update fields
-    if (username) user.username = username;
+    if (name) user.name = name;
     if (email) user.email = email;
     if (role) user.role = role;
 
@@ -149,7 +151,7 @@ const updateUser = async (req, res) => {
       message: 'User updated successfully',
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
         email: user.email,
         role: user.role
       }

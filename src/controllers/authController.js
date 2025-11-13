@@ -14,14 +14,14 @@ const login = async (req, res) => {
       });
     }
 
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by phone
+    const user = await User.findOne({ phone });
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid phone number or password'
       });
     }
 
@@ -30,13 +30,13 @@ const login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid phone number or password'
       });
     }
 
     // Generate JWT token (include role so middleware can enforce permissions)
     const token = jwt.sign(
-      { userId: user._id, username: user.username, role: user.role },
+      { userId: user._id, name: user.name, role: user.role },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -47,7 +47,8 @@ const login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
+        phone: user.phone,
         email: user.email,
         role: user.role
       }
