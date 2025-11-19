@@ -3,7 +3,7 @@ const express = require('express');
 const cron = require('node-cron');
 const connectDB = require('./src/config/database');
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 require('dotenv').config()
 
 // Connect to MongoDB

@@ -125,12 +125,11 @@ const updateEvent = async (req, res) => {
     const eventId = req.params.id;
     const { title, date, description, isSchoolEvent } = req.body;
 
-    // Find the event and check if it belongs to the user
-    const event = await Event.findOne({ _id: eventId, createdBy: req.user.userId });
+    const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found or you do not have permission to update it'
+        message: 'Event not found'
       });
     }
 
@@ -167,12 +166,11 @@ const deleteEvent = async (req, res) => {
   try {
     const eventId = req.params.id;
 
-    // Find the event and check if it belongs to the user
-    const event = await Event.findOne({ _id: eventId, createdBy: req.user.userId });
+    const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found or you do not have permission to delete it'
+        message: 'Event not found'
       });
     }
 
