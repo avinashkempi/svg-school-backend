@@ -12,7 +12,9 @@ connectDB();
 // Middleware
 // app.use(cors({
 //   origin: ['http://localhost:8081', 'http://localhost:3000', 'http://localhost:19006'],
-//   credentials: true
+//   credentials: true,
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 // }));
 app.use(express.json());
 
