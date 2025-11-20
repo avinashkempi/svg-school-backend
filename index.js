@@ -10,12 +10,15 @@ require('dotenv').config()
 connectDB();
 
 // Middleware
+// Enable CORS for all origins and methods
 // app.use(cors({
-//   origin: ['http://localhost:8081', 'http://localhost:3000', 'http://localhost:19006'],
-//   credentials: true,
+//   origin: '*', // Allow all origins
+//   credentials: false,
 //   allowedHeaders: ['Content-Type', 'Authorization'],
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+//   optionsSuccessStatus: 200
 // }));
+
 app.use(express.json());
 
 // Routes
