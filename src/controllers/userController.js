@@ -68,17 +68,6 @@ const createUser = async (req, res) => {
       });
     }
 
-    // Check if email is provided and already exists
-    if (email) {
-      const existingUserByEmail = await User.findOne({ email });
-      if (existingUserByEmail) {
-        return res.status(400).json({
-          success: false,
-          message: 'User with this email already exists'
-        });
-      }
-    }
-
     // Create new user
     const user = new User({ name, phone, email, password, role });
     await user.save();
@@ -96,6 +85,26 @@ const createUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Create user error:', error);
+
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+
+    if (error.code === 11000) {
+      // Duplicate key error
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({
+        success: false,
+        message: `${field} already exists`
+      });
+    }
+
+    // For other errors, return 500
     res.status(500).json({
       success: false,
       message: 'Server error creating user'
