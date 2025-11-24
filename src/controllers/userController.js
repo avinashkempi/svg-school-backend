@@ -93,7 +93,7 @@ const createUser = async (req, res) => {
       success: true,
       message: 'User created successfully',
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         phone: user.phone,
         email: user.email,
@@ -176,7 +176,7 @@ const updateUser = async (req, res) => {
       success: true,
       message: 'User updated successfully',
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role

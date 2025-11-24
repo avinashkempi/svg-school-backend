@@ -85,6 +85,14 @@ const getNewsById = async (req, res) => {
       });
     }
 
+    // If news is private and user is not authenticated, deny access
+    if (news.privateNews && !req.user) {
+      return res.status(403).json({
+        success: false,
+        message: 'This news is private. Please log in to view it.'
+      });
+    }
+
     res.json({
       success: true,
       news: {
