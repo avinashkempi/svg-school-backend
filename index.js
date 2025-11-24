@@ -1,5 +1,6 @@
 const express = require('express');
-// const cors = require('cors');
+const cors = require('cors');
+const compression = require('compression');
 const cron = require('node-cron');
 const connectDB = require('./src/config/database');
 const app = express();
@@ -10,14 +11,17 @@ require('dotenv').config()
 connectDB();
 
 // Middleware
+// Enable compression
+app.use(compression());
+
 // Enable CORS for all origins and methods
-// app.use(cors({
-//   origin: '*', // Allow all origins
-//   credentials: false,
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-//   optionsSuccessStatus: 200
-// }));
+app.use(cors({
+  origin: '*', // Allow all origins
+  credentials: false,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  optionsSuccessStatus: 200
+}));
 
 app.use(express.json());
 

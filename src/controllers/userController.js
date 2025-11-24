@@ -2,12 +2,29 @@ const { validationResult } = require('express-validator');
 const User = require('../models/User');
 
 // Get all users (admin only)
+// Get all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, '-password'); // Exclude password field
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const users = await User.find({}, '-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await User.countDocuments();
+
     res.json({
       success: true,
-      data: users
+      data: users,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total,
+        limit
+      }
     });
   } catch (error) {
     console.error('Get all users error:', error);

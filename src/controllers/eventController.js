@@ -94,12 +94,41 @@ const getEventById = async (req, res) => {
 
 const getEvent = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query = {};
     
-    const event = await Event.find();
+    // Date range filter
+    if (req.query.startDate || req.query.endDate) {
+      query.date = {};
+      if (req.query.startDate) query.date.$gte = new Date(req.query.startDate);
+      if (req.query.endDate) query.date.$lte = new Date(req.query.endDate);
+    }
+
+    // School event filter
+    if (req.query.isSchoolEvent !== undefined) {
+      query.isSchoolEvent = req.query.isSchoolEvent === 'true';
+    }
+
+    const events = await Event.find(query)
+      .sort({ date: -1 }) // Default sort by date descending
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Event.countDocuments(query);
 
     res.json({
       success: true,
-      event: event
+      event: events,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total,
+        limit
+      }
     });
   } catch (error) {
     console.error('Get event error:', error);

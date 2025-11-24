@@ -31,4 +31,9 @@ const eventSchema = new mongoose.Schema({
   }
 });
 
+// Add indexes for common queries
+eventSchema.index({ date: -1 });
+eventSchema.index({ createdBy: 1 });
+eventSchema.index({ isSchoolEvent: 1 });
+
 module.exports = mongoose.model('Event', eventSchema);
