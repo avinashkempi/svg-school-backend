@@ -4,7 +4,7 @@ const Class = require('../models/Class');
 const Subject = require('../models/Subject');
 const ClassContent = require('../models/ClassContent');
 const User = require('../models/User');
-const { auth, checkRole } = require('../middleware/auth');
+const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 
 // @route   GET /api/classes

@@ -57,8 +57,22 @@ const requireAdmin = (req, res, next) => {
   return res.status(403).json({ success: false, message: 'Admin privileges required' });
 };
 
+// Middleware to allow specific roles
+const checkRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Access token required' });
+    }
+    if (roles.includes(req.user.role)) {
+      return next();
+    }
+    return res.status(403).json({ success: false, message: 'Forbidden: Insufficient privileges' });
+  };
+};
+
 module.exports = {
   authenticateToken,
   optionalAuthenticateToken,
-  requireAdmin
+  requireAdmin,
+  checkRole
 };

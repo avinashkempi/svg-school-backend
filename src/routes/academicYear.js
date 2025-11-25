@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AcademicYear = require('../models/AcademicYear');
-const { auth, checkRole } = require('../middleware/auth');
+const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 
 // @route   GET /api/academic-year
 // @desc    Get all academic years
