@@ -175,8 +175,7 @@ async function sendNewsNotification(newsData) {
     }
 }
 
-    }
-}
+
 
 /**
  * Send notification when class content is posted
