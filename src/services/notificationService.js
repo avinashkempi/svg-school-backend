@@ -77,7 +77,7 @@ async function sendBatchNotifications(tokens, notification, data = {}) {
                 tokens: batch,
             };
 
-            const response = await admin.messaging().sendMulticast(message);
+            const response = await admin.messaging().sendEachForMulticast(message);
 
             totalSuccess += response.successCount;
             totalFailure += response.failureCount;
