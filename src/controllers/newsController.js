@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const News = require('../models/News');
+const { sendNewsNotification } = require('../services/notificationService');
 
 const createNews = async (req, res) => {
   try {
@@ -26,11 +27,22 @@ const createNews = async (req, res) => {
     });
     await news.save();
 
+    // Send push notification asynchronously (don't block response)
+    setImmediate(async () => {
+      try {
+        console.log('[News] Sending notification for new news...');
+        await sendNewsNotification(news);
+      } catch (error) {
+        console.error('[News] Failed to send notification:', error);
+        // Don't fail the request if notification fails
+      }
+    });
+
     res.status(201).json({
       success: true,
       message: 'News created successfully',
       news: {
-        id: news._id,
+        _id: news._id,
         title: news.title,
         description: news.description,
         creationDate: news.creationDate,
