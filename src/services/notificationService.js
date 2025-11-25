@@ -9,22 +9,28 @@ try {
 
     // Check if Firebase is already initialized
     if (!admin.apps.length) {
-        // Try to initialize Firebase
-        const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+        let serviceAccount = null;
 
-        if (serviceAccountPath) {
-            // Resolve path relative to project root (where index.js is)
-            const absolutePath = path.resolve(process.cwd(), serviceAccountPath);
-            console.log('[Firebase] Loading service account from:', absolutePath);
+        // Try to load from environment variable first (for production/Render)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+            console.log('[Firebase] Loading service account from environment variable');
+            serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+        }
+        // Otherwise try to load from file path (for local development)
+        else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+            const absolutePath = path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+            console.log('[Firebase] Loading service account from file:', absolutePath);
+            serviceAccount = require(absolutePath);
+        }
 
-            const serviceAccount = require(absolutePath);
+        if (serviceAccount) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
             });
             console.log('✅ Firebase Admin SDK initialized successfully');
         } else {
-            console.warn('⚠️  FIREBASE_SERVICE_ACCOUNT_PATH not set. Push notifications will not work.');
-            console.warn('⚠️  To enable notifications, add FIREBASE_SERVICE_ACCOUNT_PATH to your .env file');
+            console.warn('⚠️  Firebase credentials not found. Push notifications will not work.');
+            console.warn('⚠️  Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH environment variable');
             admin = null; // Set to null if not properly initialized
         }
     }
