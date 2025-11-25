@@ -14,6 +14,21 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateToken);
 
+// Get current user's info
+router.get('/me', async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Get all users (admin only)
 router.get('/', requireAdmin, getAllUsers);
 
