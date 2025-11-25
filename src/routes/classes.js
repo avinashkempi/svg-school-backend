@@ -50,6 +50,52 @@ router.post('/', [auth, checkRole(['admin', 'super admin'])], async (req, res) =
     }
 });
 
+// @route   PUT /api/classes/:id
+// @desc    Update a class
+// @access  Super Admin
+router.put('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
+    const { name, section, branch, academicYear, classTeacher } = req.body;
+
+    try {
+        let classData = await Class.findById(req.params.id);
+        if (!classData) return res.status(404).json({ msg: 'Class not found' });
+
+        classData.name = name || classData.name;
+        classData.section = section !== undefined ? section : classData.section;
+        classData.branch = branch || classData.branch;
+        classData.academicYear = academicYear || classData.academicYear;
+        classData.classTeacher = classTeacher || classData.classTeacher;
+
+        await classData.save();
+        res.json(classData);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE /api/classes/:id
+// @desc    Delete a class
+// @access  Super Admin
+router.delete('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
+    try {
+        const classData = await Class.findById(req.params.id);
+        if (!classData) return res.status(404).json({ msg: 'Class not found' });
+
+        // Check if class has students
+        const studentCount = await User.countDocuments({ currentClass: req.params.id });
+        if (studentCount > 0) {
+            return res.status(400).json({ msg: 'Cannot delete class with enrolled students' });
+        }
+
+        await Class.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Class removed' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   GET /api/classes/:id/content
 // @desc    Get content for a class
 // @access  Private
