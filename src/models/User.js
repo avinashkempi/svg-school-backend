@@ -34,6 +34,42 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'class teacher', 'staff', 'admin', 'super admin'],
     default: 'student'
   },
+
+  // Student specific fields
+  admissionDate: {
+    type: Date
+  },
+  guardianName: {
+    type: String,
+    trim: true
+  },
+  guardianPhone: {
+    type: String,
+    trim: true,
+    match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian phone number']
+  },
+  currentClass: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class'
+  },
+  academicYear: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AcademicYear'
+  },
+
+  // Teacher specific fields
+  joiningDate: {
+    type: Date
+  },
+  designation: {
+    type: String,
+    trim: true
+  },
+  subjects: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject'
+  }],
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -41,7 +77,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
   try {
@@ -54,7 +90,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

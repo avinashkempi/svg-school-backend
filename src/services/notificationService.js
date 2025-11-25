@@ -175,7 +175,64 @@ async function sendNewsNotification(newsData) {
     }
 }
 
+    }
+}
+
+/**
+ * Send notification when class content is posted
+ * @param {string} classId - The ID of the class
+ * @param {Object} content - The content object (title, type, etc.)
+ */
+async function sendClassContentNotification(classId, content) {
+    try {
+        if (!admin) {
+            console.warn('[Notifications] Firebase not initialized, skipping class notification');
+            return { success: false, error: 'Firebase not configured' };
+        }
+
+        const User = require('../models/User');
+
+        // Find all students in the class
+        const students = await User.find({ currentClass: classId, role: 'student' }).select('_id');
+        const studentIds = students.map(s => s._id);
+
+        if (studentIds.length === 0) {
+            console.log('[Notifications] No students in class, skipping notification');
+            return { success: true, message: 'No students in class' };
+        }
+
+        // Find FCM tokens for these students
+        const fcmTokenDocs = await FCMToken.find({ userId: { $in: studentIds } });
+        const tokens = fcmTokenDocs.map(doc => doc.token);
+
+        console.log(`[Notifications] Found ${tokens.length} tokens for class ${classId}`);
+
+        if (tokens.length === 0) {
+            return { success: true, message: 'No tokens found for students' };
+        }
+
+        const notification = {
+            title: `New ${content.type}: ${content.title}`,
+            body: content.description ? content.description.substring(0, 100) : 'Check the app for details',
+        };
+
+        const data = {
+            type: 'class_content',
+            contentId: content._id.toString(),
+            contentType: content.type,
+            classId: classId.toString()
+        };
+
+        return await sendBatchNotifications(tokens, notification, data);
+
+    } catch (error) {
+        console.error('[Notifications] Error sending class notification:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 module.exports = {
     sendBatchNotifications,
     sendNewsNotification,
+    sendClassContentNotification
 };

@@ -32,6 +32,8 @@ app.use('/api/news', require('./src/routes/news'));
 app.use('/api/school-info', require('./src/routes/schoolInfo'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/fcm', require('./src/routes/fcm'));
+app.use('/api/academic-year', require('./src/routes/academicYear'));
+app.use('/api/classes', require('./src/routes/classes'));
 
 app.get('/', (req, res) => {
   res.send('Hello from Express Backend!');

@@ -25,7 +25,19 @@ const userValidation = [
   body('role')
     .optional()
     .isIn(['student', 'class teacher', 'staff', 'admin', 'super admin'])
-    .withMessage('Role must be one of: student, class teacher, staff, admin, super admin')
+    .withMessage('Role must be one of: student, class teacher, staff, admin, super admin'),
+  body('guardianPhone')
+    .optional({ checkFalsy: true })
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage('Please provide a valid 10-digit Indian phone number for guardian'),
+  body('admissionDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Admission date must be a valid date'),
+  body('joiningDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Joining date must be a valid date')
 ];
 
 module.exports = {

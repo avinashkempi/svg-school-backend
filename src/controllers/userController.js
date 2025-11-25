@@ -13,7 +13,7 @@ const getAllUsers = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-      
+
     const total = await User.countDocuments();
 
     res.json({
@@ -74,7 +74,13 @@ const createUser = async (req, res) => {
       });
     }
 
-    const { name, phone, email, password, role } = req.body;
+    const {
+      name, phone, email, password, role,
+      // Student fields
+      admissionDate, guardianName, guardianPhone, currentClass, academicYear,
+      // Teacher fields
+      joiningDate, designation, subjects
+    } = req.body;
 
     // Check if user already exists by phone
     const existingUserByPhone = await User.findOne({ phone });
@@ -86,7 +92,11 @@ const createUser = async (req, res) => {
     }
 
     // Create new user
-    const user = new User({ name, phone, email, password, role });
+    const user = new User({
+      name, phone, email, password, role,
+      admissionDate, guardianName, guardianPhone, currentClass, academicYear,
+      joiningDate, designation, subjects
+    });
     await user.save();
 
     res.status(201).json({
@@ -143,7 +153,13 @@ const updateUser = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { name, email, role } = req.body;
+    const {
+      name, email, role,
+      // Student fields
+      admissionDate, guardianName, guardianPhone, currentClass, academicYear,
+      // Teacher fields
+      joiningDate, designation, subjects
+    } = req.body;
 
     // Find user
     const user = await User.findById(id);
@@ -169,6 +185,18 @@ const updateUser = async (req, res) => {
     if (name) user.name = name;
     if (email) user.email = email;
     if (role) user.role = role;
+
+    // Update student fields
+    if (admissionDate) user.admissionDate = admissionDate;
+    if (guardianName) user.guardianName = guardianName;
+    if (guardianPhone) user.guardianPhone = guardianPhone;
+    if (currentClass) user.currentClass = currentClass;
+    if (academicYear) user.academicYear = academicYear;
+
+    // Update teacher fields
+    if (joiningDate) user.joiningDate = joiningDate;
+    if (designation) user.designation = designation;
+    if (subjects) user.subjects = subjects;
 
     await user.save();
 
