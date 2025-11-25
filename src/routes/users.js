@@ -29,8 +29,15 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// Get all users (admin only)
-router.get('/', requireAdmin, getAllUsers);
+// Get all users (admin only, except teachers can get students)
+router.get('/', (req, res, next) => {
+  // Allow teachers to access if they're filtering by role=student
+  if (req.query.role === 'student' && req.user.role === 'class teacher') {
+    return next();
+  }
+  // Otherwise require admin
+  return requireAdmin(req, res, next);
+}, getAllUsers);
 
 // Get user by ID
 router.get('/:id', getUserById);

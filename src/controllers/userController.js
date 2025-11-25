@@ -8,14 +8,29 @@ const getAllUsers = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const { role } = req.query;
 
-    const users = await User.find({}, '-password')
+    // Build query filter
+    const filter = {};
+    if (role) {
+      filter.role = role;
+    }
+
+    const users = await User.find(filter, '-password')
+      .populate('currentClass', 'name section')
+      .populate('academicYear', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await User.countDocuments();
+    const total = await User.countDocuments(filter);
 
+    // If role filter is provided, return simple array for easier frontend consumption
+    if (role) {
+      return res.json(users);
+    }
+
+    // Otherwise return paginated response
     res.json({
       success: true,
       data: users,
