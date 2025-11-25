@@ -50,7 +50,9 @@ const login = async (req, res) => {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        role: user.role
+        role: user.role,
+        currentClass: user.currentClass,
+        academicYear: user.academicYear
       }
     });
   } catch (error) {
