@@ -221,4 +221,102 @@ router.delete('/:id/students/:studentId', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/classes/:id/subjects
+// @desc    Get all subjects for a class
+// @access  Private
+router.get('/:id/subjects', auth, async (req, res) => {
+    try {
+        const subjects = await Subject.find({ class: req.params.id }).sort({ name: 1 });
+        res.json(subjects);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST /api/classes/:id/subjects
+// @desc    Add a subject to a class
+// @access  Class Teacher (for their class) or Admin/Super Admin
+router.post('/:id/subjects', auth, async (req, res) => {
+    const { name } = req.body;
+    const classId = req.params.id;
+
+    try {
+        const classData = await Class.findById(classId);
+        if (!classData) {
+            return res.status(404).json({ success: false, message: 'Class not found' });
+        }
+
+        const userRole = req.user.role;
+        const isAdmin = userRole === 'admin' || userRole === 'super admin';
+        const isClassTeacher = classData.classTeacher && classData.classTeacher.toString() === req.user.userId;
+
+        if (!isAdmin && !isClassTeacher) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const newSubject = new Subject({
+            name,
+            class: classId,
+            teachers: [req.user.userId] // Add creator as teacher initially
+        });
+
+        const savedSubject = await newSubject.save();
+        res.json(savedSubject);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE /api/classes/:id/subjects/:subjectId
+// @desc    Delete a subject
+// @access  Class Teacher or Admin
+router.delete('/:id/subjects/:subjectId', auth, async (req, res) => {
+    try {
+        const { id: classId, subjectId } = req.params;
+
+        const classData = await Class.findById(classId);
+        if (!classData) return res.status(404).json({ success: false, message: 'Class not found' });
+
+        const userRole = req.user.role;
+        const isAdmin = userRole === 'admin' || userRole === 'super admin';
+        const isClassTeacher = classData.classTeacher && classData.classTeacher.toString() === req.user.userId;
+
+        if (!isAdmin && !isClassTeacher) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        // Check for content
+        const contentCount = await ClassContent.countDocuments({ subject: subjectId });
+        if (contentCount > 0) {
+            return res.status(400).json({ success: false, message: 'Cannot delete subject with existing content' });
+        }
+
+        await Subject.findByIdAndDelete(subjectId);
+        res.json({ success: true, message: 'Subject deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/classes/:id/subjects/:subjectId/content
+// @desc    Get content for a specific subject
+// @access  Private
+router.get('/:id/subjects/:subjectId/content', auth, async (req, res) => {
+    try {
+        const content = await ClassContent.find({
+            class: req.params.id,
+            subject: req.params.subjectId
+        })
+            .populate('author', 'name')
+            .sort({ createdAt: -1 });
+        res.json(content);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
