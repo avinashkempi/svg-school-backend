@@ -6,7 +6,8 @@ const {
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  searchUsers
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -28,6 +29,9 @@ router.get('/me', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// Search users by name or phone
+router.get('/search', searchUsers);
 
 // Get all users (admin only, except teachers can get students)
 router.get('/', (req, res, next) => {

@@ -260,10 +260,52 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Search users by name or phone
+const searchUsers = async (req, res) => {
+  try {
+    const { query, role } = req.query;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be at least 2 characters'
+      });
+    }
+
+    // Build search filter
+    const filter = {
+      $or: [
+        { name: { $regex: query, $options: 'i' } }, // Case-insensitive name search
+        { phone: { $regex: query, $options: 'i' } } // Phone search
+      ]
+    };
+
+    // Add role filter if provided
+    if (role) {
+      filter.role = role;
+    }
+
+    const users = await User.find(filter, '-password')
+      .populate('currentClass', 'name section')
+      .populate('academicYear', 'name')
+      .limit(20) // Limit results to 20
+      .sort({ name: 1 }); // Sort by name
+
+    res.json(users);
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error searching users'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  searchUsers
 };
