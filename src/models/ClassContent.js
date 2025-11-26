@@ -12,7 +12,7 @@ const classContentSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['Note', 'Homework', 'News'],
+        enum: ['note', 'homework', 'news'],
         required: true
     },
     class: {

@@ -229,7 +229,7 @@ router.post('/:id/content', auth, async (req, res) => {
             subject,
             class: classId,
             author: req.user.userId,
-            link
+            attachments: link ? [link] : []
         });
 
         const savedContent = await newContent.save();
