@@ -8,25 +8,7 @@ const AcademicYear = require('../models/AcademicYear');
 const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 
-// @route   GET /api/classes
-// @desc    Get all classes (optionally filter by academic year)
-// @access  Private
-router.get('/', auth, async (req, res) => {
-    try {
-        const { academicYear } = req.query;
-        const query = {};
-        if (academicYear) query.academicYear = academicYear;
 
-        const classes = await Class.find(query)
-            .populate('academicYear', 'name')
-            .populate('classTeacher', 'name email')
-            .sort({ name: 1 });
-        res.json(classes);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
 
 // @route   GET /api/classes/my-classes
 // @desc    Get classes where the logged-in user is the class teacher
@@ -95,28 +77,7 @@ router.get('/:id/full-details', auth, async (req, res) => {
     }
 });
 
-// @route   GET /api/classes/:id
-// @desc    Get class by ID
-// @access  Private
-router.get('/:id', auth, async (req, res) => {
-    try {
-        const classData = await Class.findById(req.params.id)
-            .populate('academicYear', 'name')
-            .populate('classTeacher', 'name email');
 
-        if (!classData) {
-            return res.status(404).json({ msg: 'Class not found' });
-        }
-
-        res.json(classData);
-    } catch (err) {
-        console.error(err.message);
-        if (err.kind === 'ObjectId') {
-            return res.status(404).json({ msg: 'Class not found' });
-        }
-        res.status(500).send('Server Error');
-    }
-});
 
 // @route   POST /api/classes
 // @desc    Create a new class
@@ -187,21 +148,7 @@ router.delete('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
     }
 });
 
-// @route   GET /api/classes/:id/content
-// @desc    Get content for a class
-// @access  Private
-router.get('/:id/content', auth, async (req, res) => {
-    try {
-        const content = await ClassContent.find({ class: req.params.id })
-            .populate('author', 'name')
-            .populate('subject', 'name')
-            .sort({ createdAt: -1 });
-        res.json(content);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
+
 
 // @route   POST /api/classes/:id/content
 // @desc    Create content for a class
@@ -245,24 +192,7 @@ router.post('/:id/content', auth, async (req, res) => {
     }
 });
 
-// @route   GET /api/classes/:id/students
-// @desc    Get all students in a specific class
-// @access  Private
-router.get('/:id/students', auth, async (req, res) => {
-    try {
-        const students = await User.find({
-            currentClass: req.params.id,
-            role: 'student'
-        })
-            .select('name phone email admissionDate guardianName guardianPhone')
-            .sort({ name: 1 });
 
-        res.json(students);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
 
 // @route   POST /api/classes/:id/students
 // @desc    Add a student to a class
