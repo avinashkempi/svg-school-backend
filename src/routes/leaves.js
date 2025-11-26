@@ -13,7 +13,7 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
         const { startDate, endDate, reason } = req.body;
 
         // Log request for debugging
-        console.log('[Leave Apply] Request from user:', req.user.id);
+        console.log('[Leave Apply] Request from user:', req.user.userId);
         console.log('[Leave Apply] Request body:', { startDate, endDate, reason });
 
         // Validate required fields
@@ -43,19 +43,19 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
         }
 
         // Get student's current class
-        const student = await User.findById(req.user.id);
+        const student = await User.findById(req.user.userId);
         if (!student) {
-            console.error('[Leave Apply] Student not found:', req.user.id);
+            console.error('[Leave Apply] Student not found:', req.user.userId);
             return res.status(404).json({ success: false, message: 'Student not found' });
         }
 
         if (!student.currentClass) {
-            console.error('[Leave Apply] Student has no currentClass:', req.user.id);
+            console.error('[Leave Apply] Student has no currentClass:', req.user.userId);
             return res.status(400).json({ success: false, message: 'Student is not assigned to any class' });
         }
 
         const leaveRequest = await LeaveRequest.create({
-            student: req.user.id,
+            student: req.user.userId,
             class: student.currentClass,
             startDate: start,
             endDate: end,
@@ -68,7 +68,7 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
         console.error('[Leave Apply] Error occurred:');
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
-        console.error('User ID:', req.user?.id);
+        console.error('User ID:', req.user?.userId);
         console.error('Request body:', req.body);
 
         // Return more helpful error message
@@ -85,7 +85,7 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
 // @access  Private (Student)
 router.get('/my-leaves', authenticateToken, checkRole(['student']), async (req, res) => {
     try {
-        const leaves = await LeaveRequest.find({ student: req.user.id })
+        const leaves = await LeaveRequest.find({ student: req.user.userId })
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: leaves });
@@ -104,7 +104,7 @@ router.get('/class-leaves', authenticateToken, checkRole(['class teacher', 'admi
 
         if (req.user.role === 'class teacher') {
             // Find class where user is the class teacher
-            const classObj = await Class.findOne({ classTeacher: req.user.id });
+            const classObj = await Class.findOne({ classTeacher: req.user.userId });
             if (!classObj) {
                 return res.status(404).json({ success: false, message: 'No class assigned to this teacher' });
             }
@@ -156,14 +156,14 @@ router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin'
 
         // Check if teacher is authorized for this class
         if (req.user.role === 'class teacher') {
-            const classObj = await Class.findOne({ classTeacher: req.user.id });
+            const classObj = await Class.findOne({ classTeacher: req.user.userId });
             if (!classObj || classObj._id.toString() !== leaveRequest.class.toString()) {
                 return res.status(403).json({ success: false, message: 'Not authorized to manage leaves for this class' });
             }
         }
 
         leaveRequest.status = status;
-        leaveRequest.actionBy = req.user.id;
+        leaveRequest.actionBy = req.user.userId;
         leaveRequest.actionReason = reason;
         leaveRequest.actionDate = Date.now();
 
