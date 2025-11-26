@@ -223,4 +223,37 @@ router.get('/schedule/class/:classId', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/exams/history
+// @desc    Get exam history (past date)
+// @access  Private (Teacher/Admin)
+router.get('/history', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        let query = { date: { $lt: today } };
+
+        // If teacher, only show their exams
+        if (user.role === 'class teacher' || user.role === 'staff') {
+            query.createdBy = req.user.userId;
+        }
+
+        if (user.role === 'student') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const exams = await Exam.find(query)
+            .populate('class', 'name section')
+            .populate('subject', 'name')
+            .populate('createdBy', 'name')
+            .sort({ date: -1 });
+
+        res.json(exams);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

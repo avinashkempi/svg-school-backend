@@ -215,4 +215,37 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/assignments/history
+// @desc    Get assignment history (past due date)
+// @access  Private (Teacher/Admin)
+router.get('/history', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        const today = new Date();
+
+        let query = { dueDate: { $lt: today } };
+
+        // If teacher, only show their assignments
+        if (user.role === 'class teacher' || user.role === 'staff') {
+            query.teacher = req.user.userId;
+        }
+        // If admin, show all (already covered by default query)
+        // If student, not allowed (or could show their class history, but spec says teacher/admin)
+        if (user.role === 'student') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const assignments = await Assignment.find(query)
+            .populate('class', 'name section')
+            .populate('subject', 'name')
+            .populate('teacher', 'name')
+            .sort({ dueDate: -1 }); // Newest past first
+
+        res.json(assignments);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
