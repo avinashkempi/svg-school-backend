@@ -203,6 +203,48 @@ router.get('/:id/content', auth, async (req, res) => {
     }
 });
 
+// @route   POST /api/classes/:id/content
+// @desc    Create content for a class
+// @access  Class Teacher or Admin
+router.post('/:id/content', auth, async (req, res) => {
+    const { title, description, type, subject, link } = req.body;
+    const classId = req.params.id;
+
+    try {
+        const classData = await Class.findById(classId);
+        if (!classData) return res.status(404).json({ msg: 'Class not found' });
+
+        const userRole = req.user.role;
+        const isAdmin = userRole === 'admin' || userRole === 'super admin';
+        const isClassTeacher = classData.classTeacher && classData.classTeacher.toString() === req.user.userId;
+
+        if (!isAdmin && !isClassTeacher) {
+            return res.status(403).json({ msg: 'Not authorized' });
+        }
+
+        const newContent = new ClassContent({
+            title,
+            description,
+            type,
+            subject,
+            class: classId,
+            author: req.user.userId,
+            link
+        });
+
+        const savedContent = await newContent.save();
+
+        // Populate author and subject for response
+        await savedContent.populate('author', 'name');
+        await savedContent.populate('subject', 'name');
+
+        res.json(savedContent);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   GET /api/classes/:id/students
 // @desc    Get all students in a specific class
 // @access  Private
