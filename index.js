@@ -34,6 +34,7 @@ app.use('/api/users', require('./src/routes/users'));
 app.use('/api/fcm', require('./src/routes/fcm'));
 app.use('/api/academic-year', require('./src/routes/academicYear'));
 app.use('/api/classes', require('./src/routes/classes'));
+app.use('/api/teachers', require('./src/routes/teachers'));
 app.use('/api/leaves', require('./src/routes/leaves'));
 
 app.get('/', (req, res) => {
