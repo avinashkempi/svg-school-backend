@@ -124,11 +124,16 @@ router.get('/my-schedule', auth, async (req, res) => {
         };
 
         timetables.forEach(timetable => {
+            // Skip if class is deleted or not populated
+            if (!timetable.class) return;
+
             timetable.schedule.forEach(daySchedule => {
                 const day = daySchedule.day;
                 if (mySchedule[day]) {
                     daySchedule.periods.forEach(period => {
+                        // console.log(`Checking period: ${period.subject?.name} - Teacher: ${period.teacher}`);
                         if (period.teacher && period.teacher.toString() === req.user.userId) {
+                            // console.log('Match found!');
                             mySchedule[day].push({
                                 ...period.toObject(),
                                 className: `${timetable.class.name} ${timetable.class.section}`,

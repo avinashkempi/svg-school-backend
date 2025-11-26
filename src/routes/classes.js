@@ -5,6 +5,7 @@ const Subject = require('../models/Subject');
 const ClassContent = require('../models/ClassContent');
 const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');
+const Timetable = require('../models/Timetable');
 const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 
@@ -141,6 +142,10 @@ router.delete('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
         }
 
         await Class.findByIdAndDelete(req.params.id);
+
+        // Delete associated timetable
+        await Timetable.findOneAndDelete({ class: req.params.id });
+
         res.json({ msg: 'Class removed' });
     } catch (err) {
         console.error(err.message);

@@ -172,4 +172,53 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/exams/schedule/student
+// @desc    Get upcoming exams for the logged-in student
+// @access  Private (Student)
+router.get('/schedule/student', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        if (!user || user.role !== 'student') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        if (!user.currentClass) {
+            return res.status(400).json({ message: 'Student not assigned to a class' });
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const exams = await Exam.find({
+            class: user.currentClass,
+            date: { $gte: today }
+        })
+            .populate('subject', 'name')
+            .populate('class', 'name section')
+            .sort({ date: 1 });
+
+        res.json(exams);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/exams/schedule/class/:classId
+// @desc    Get all exams for a specific class (Admin/Teacher view)
+// @access  Private
+router.get('/schedule/class/:classId', auth, async (req, res) => {
+    try {
+        const exams = await Exam.find({ class: req.params.classId })
+            .populate('subject', 'name')
+            .populate('createdBy', 'name')
+            .sort({ date: 1 });
+
+        res.json(exams);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
