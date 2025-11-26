@@ -3,12 +3,12 @@ const router = express.Router();
 const LeaveRequest = require('../models/LeaveRequest');
 const User = require('../models/User');
 const Class = require('../models/Class');
-const { protect, authorize } = require('../middleware/auth');
+const { authenticateToken, checkRole } = require('../middleware/auth');
 
 // @desc    Apply for leave
 // @route   POST /api/leaves/apply
 // @access  Private (Student)
-router.post('/apply', protect, authorize('student'), async (req, res) => {
+router.post('/apply', authenticateToken, checkRole(['student']), async (req, res) => {
     try {
         const { startDate, endDate, reason } = req.body;
 
@@ -36,7 +36,7 @@ router.post('/apply', protect, authorize('student'), async (req, res) => {
 // @desc    Get my leave history
 // @route   GET /api/leaves/my-leaves
 // @access  Private (Student)
-router.get('/my-leaves', protect, authorize('student'), async (req, res) => {
+router.get('/my-leaves', authenticateToken, checkRole(['student']), async (req, res) => {
     try {
         const leaves = await LeaveRequest.find({ student: req.user.id })
             .sort({ createdAt: -1 });
@@ -51,7 +51,7 @@ router.get('/my-leaves', protect, authorize('student'), async (req, res) => {
 // @desc    Get leave requests for a class
 // @route   GET /api/leaves/class-leaves
 // @access  Private (Teacher, Admin)
-router.get('/class-leaves', protect, authorize('class teacher', 'admin'), async (req, res) => {
+router.get('/class-leaves', authenticateToken, checkRole(['class teacher', 'admin']), async (req, res) => {
     try {
         let classId;
 
@@ -93,7 +93,7 @@ router.get('/class-leaves', protect, authorize('class teacher', 'admin'), async 
 // @desc    Approve/Reject leave request
 // @route   PUT /api/leaves/:id/action
 // @access  Private (Teacher, Admin)
-router.put('/:id/action', protect, authorize('class teacher', 'admin'), async (req, res) => {
+router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin']), async (req, res) => {
     try {
         const { status, reason } = req.body; // status: 'approved' or 'rejected'
 
@@ -132,7 +132,7 @@ router.put('/:id/action', protect, authorize('class teacher', 'admin'), async (r
 // @desc    Get daily leave stats (Who is on leave today)
 // @route   GET /api/leaves/daily-stats
 // @access  Private (Admin)
-router.get('/daily-stats', protect, authorize('admin'), async (req, res) => {
+router.get('/daily-stats', authenticateToken, checkRole(['admin']), async (req, res) => {
     try {
         const dateStr = req.query.date; // YYYY-MM-DD
         let targetDate;
