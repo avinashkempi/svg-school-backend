@@ -4,6 +4,7 @@ const Class = require('../models/Class');
 const Subject = require('../models/Subject');
 const ClassContent = require('../models/ClassContent');
 const User = require('../models/User');
+const AcademicYear = require('../models/AcademicYear');
 const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 
@@ -23,6 +24,73 @@ router.get('/', auth, async (req, res) => {
         res.json(classes);
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/classes/my-classes
+// @desc    Get classes where the logged-in user is the class teacher
+// @access  Private (Teacher)
+router.get('/my-classes', auth, async (req, res) => {
+    try {
+        const classes = await Class.find({ classTeacher: req.user.userId })
+            .populate('academicYear', 'name')
+            .populate('classTeacher', 'name email')
+            .sort({ name: 1 });
+        res.json(classes);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/classes/admin/init
+// @desc    Get all data needed for admin classes page
+// @access  Admin/Super Admin
+router.get('/admin/init', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
+    try {
+        const [classes, academicYears, teachers] = await Promise.all([
+            Class.find().populate('academicYear', 'name').populate('classTeacher', 'name email').sort({ name: 1 }),
+            AcademicYear.find().sort({ startYear: -1 }),
+            User.find({ role: { $in: ['class teacher', 'staff'] } }).select('name email role')
+        ]);
+
+        res.json({
+            classes,
+            academicYears,
+            teachers
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/classes/:id/full-details
+// @desc    Get class details, subjects, and students
+// @access  Private
+router.get('/:id/full-details', auth, async (req, res) => {
+    try {
+        const [classData, subjects, students] = await Promise.all([
+            Class.findById(req.params.id).populate('academicYear', 'name').populate('classTeacher', 'name email'),
+            Subject.find({ class: req.params.id }).sort({ name: 1 }),
+            User.find({ currentClass: req.params.id, role: 'student' }).select('name phone email admissionDate guardianName guardianPhone').sort({ name: 1 })
+        ]);
+
+        if (!classData) {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
+
+        res.json({
+            classData,
+            subjects,
+            students
+        });
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
         res.status(500).send('Server Error');
     }
 });
