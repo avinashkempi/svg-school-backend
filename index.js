@@ -43,6 +43,7 @@ app.use('/api/timetable', require('./src/routes/timetable'));
 app.use('/api/leaves', require('./src/routes/leaves'));
 app.use('/api/fees', require('./src/routes/fees'));
 app.use('/api/complaints', require('./src/routes/complaints'));
+app.use('/api/notifications', require('./src/routes/notifications'));
 
 app.get('/', (req, res) => {
   res.send('Hello from Express Backend!');

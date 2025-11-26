@@ -73,6 +73,13 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  notificationPreferences: {
+    homework: { type: Boolean, default: true },
+    exam: { type: Boolean, default: true },
+    fee: { type: Boolean, default: true },
+    event: { type: Boolean, default: true },
+    general: { type: Boolean, default: true }
   }
 });
 

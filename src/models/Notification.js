@@ -1,15 +1,41 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
   message: {
     type: String,
     required: [true, 'Notification message is required'],
     trim: true
   },
+  type: {
+    type: String,
+    enum: ['General', 'Homework', 'Exam', 'Fee', 'Emergency', 'Event'],
+    default: 'General'
+  },
+  recipient: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null // null means broadcast to all (or filtered by other means)
+  },
+  targetClass: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class',
+    default: null
+  },
+  read: {
+    type: Boolean,
+    default: false
+  },
   eventId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Event',
-    required: [true, 'Notification must be linked to an event']
+    ref: 'Event'
+  },
+  metadata: {
+    type: Object
   },
   createdAt: {
     type: Date,
