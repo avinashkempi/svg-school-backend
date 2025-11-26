@@ -42,6 +42,9 @@ const ExamSchema = new mongoose.Schema({
     duration: {
         type: Number  // Duration in minutes
     },
+    room: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

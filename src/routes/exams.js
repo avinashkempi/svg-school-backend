@@ -13,7 +13,7 @@ const Class = require('../models/Class');
 // @access  Private (Teacher)
 router.post('/', auth, async (req, res) => {
     try {
-        const { name, type, classId, subjectId, totalMarks, date, instructions, duration } = req.body;
+        const { name, type, classId, subjectId, totalMarks, date, instructions, duration, room } = req.body;
 
         // Validate teacher authorization (must teach this subject)
         const subject = await Subject.findById(subjectId);
@@ -39,7 +39,8 @@ router.post('/', auth, async (req, res) => {
             academicYear: activeYear ? activeYear._id : null,
             createdBy: req.user.userId,
             instructions,
-            duration
+            duration,
+            room
         });
 
         await exam.save();
@@ -118,7 +119,7 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        const { name, type, totalMarks, date, instructions, duration } = req.body;
+        const { name, type, totalMarks, date, instructions, duration, room } = req.body;
 
         if (name) exam.name = name;
         if (type) exam.type = type;
@@ -126,6 +127,7 @@ router.put('/:id', auth, async (req, res) => {
         if (date) exam.date = date;
         if (instructions !== undefined) exam.instructions = instructions;
         if (duration) exam.duration = duration;
+        if (room) exam.room = room;
 
         await exam.save();
 
