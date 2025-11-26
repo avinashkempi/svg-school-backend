@@ -12,24 +12,71 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
     try {
         const { startDate, endDate, reason } = req.body;
 
+        // Log request for debugging
+        console.log('[Leave Apply] Request from user:', req.user.id);
+        console.log('[Leave Apply] Request body:', { startDate, endDate, reason });
+
+        // Validate required fields
+        if (!startDate || !endDate || !reason) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: startDate, endDate, and reason are required'
+            });
+        }
+
+        // Validate dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid date format. Please use YYYY-MM-DD format'
+            });
+        }
+
+        if (end < start) {
+            return res.status(400).json({
+                success: false,
+                message: 'End date cannot be before start date'
+            });
+        }
+
         // Get student's current class
         const student = await User.findById(req.user.id);
+        if (!student) {
+            console.error('[Leave Apply] Student not found:', req.user.id);
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
         if (!student.currentClass) {
+            console.error('[Leave Apply] Student has no currentClass:', req.user.id);
             return res.status(400).json({ success: false, message: 'Student is not assigned to any class' });
         }
 
         const leaveRequest = await LeaveRequest.create({
             student: req.user.id,
             class: student.currentClass,
-            startDate,
-            endDate,
+            startDate: start,
+            endDate: end,
             reason
         });
 
+        console.log('[Leave Apply] Leave request created successfully:', leaveRequest._id);
         res.status(201).json({ success: true, data: leaveRequest });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        console.error('[Leave Apply] Error occurred:');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('User ID:', req.user?.id);
+        console.error('Request body:', req.body);
+
+        // Return more helpful error message
+        res.status(500).json({
+            success: false,
+            message: 'Server Error',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
