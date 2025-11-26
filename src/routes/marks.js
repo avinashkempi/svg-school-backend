@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
 const Marks = require('../models/Marks');
 const Exam = require('../models/Exam');
 const GradeConfig = require('../models/GradeConfig');
