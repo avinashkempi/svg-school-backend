@@ -27,6 +27,29 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/classes/:id
+// @desc    Get class by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const classData = await Class.findById(req.params.id)
+            .populate('academicYear', 'name')
+            .populate('classTeacher', 'name email');
+
+        if (!classData) {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
+
+        res.json(classData);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST /api/classes
 // @desc    Create a new class
 // @access  Admin/Super Admin
