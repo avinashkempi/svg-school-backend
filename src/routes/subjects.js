@@ -112,4 +112,23 @@ router.get('/:id/usage', [auth, checkRole(['admin', 'super admin'])], async (req
     }
 });
 
+// @route   GET /api/subjects/:id
+// @desc    Get subject by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const subject = await Subject.findById(req.params.id).populate('class', 'name section');
+        if (!subject) {
+            return res.status(404).json({ msg: 'Subject not found' });
+        }
+        res.json(subject);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Subject not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

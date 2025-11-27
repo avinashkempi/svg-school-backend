@@ -48,6 +48,25 @@ router.get('/admin/init', [auth, checkRole(['admin', 'super admin'])], async (re
     }
 });
 
+// @route   GET /api/classes/:id
+// @desc    Get single class by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const classData = await Class.findById(req.params.id).populate('classTeacher', 'name email');
+        if (!classData) {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
+        res.json(classData);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Class not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   GET /api/classes/:id/full-details
 // @desc    Get class details, subjects, and students
 // @access  Private
