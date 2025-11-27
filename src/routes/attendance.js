@@ -19,7 +19,9 @@ router.post('/mark', auth, async (req, res) => {
 
         // Check if teacher
         const classData = await Class.findById(classId);
-        if (classData && classData.classTeacher && classData.classTeacher.toString() === req.user.userId) {
+        if (req.user.role === 'admin' || req.user.role === 'super admin') {
+            isAuthorized = true;
+        } else if (classData && classData.classTeacher && classData.classTeacher.toString() === req.user.userId) {
             isAuthorized = true;
         }
 
@@ -35,12 +37,8 @@ router.post('/mark', auth, async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to mark attendance for this class/subject' });
         }
 
-        // Process attendance records sequentially to avoid race conditions and improve debugging
         for (const record of attendanceRecords) {
             const { studentId, status, remarks, period } = record;
-
-            // FORCE CLASS-BASED ATTENDANCE: Ignore subjectId and period
-            // Attendance is for the class on that date, regardless of who marks it
             // Ensure date is a Date object, not a timestamp number
             const attendanceDate = new Date(date);
             attendanceDate.setHours(0, 0, 0, 0);

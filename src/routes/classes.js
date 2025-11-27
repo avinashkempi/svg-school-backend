@@ -11,6 +11,21 @@ const notificationService = require('../services/notificationService');
 
 
 
+// @route   GET /api/classes
+// @desc    Get all classes
+// @access  Private
+router.get('/', auth, async (req, res) => {
+    try {
+        const classes = await Class.find()
+            .populate('classTeacher', 'name email')
+            .sort({ name: 1 });
+        res.json(classes);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   GET /api/classes/my-classes
 // @desc    Get classes where the logged-in user is the teacher
 // @access  Private (Teacher)
