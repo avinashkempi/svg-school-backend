@@ -3,6 +3,7 @@ const router = express.Router();
 const LeaveRequest = require('../models/LeaveRequest');
 const User = require('../models/User');
 const Class = require('../models/Class');
+const Attendance = require('../models/Attendance');
 const { authenticateToken, checkRole } = require('../middleware/auth');
 
 // @desc    Apply for leave
@@ -189,6 +190,45 @@ router.put('/:id/action', authenticateToken, checkRole(['teacher', 'admin', 'sup
         leaveRequest.actionDate = Date.now();
 
         await leaveRequest.save();
+
+        // Auto-mark attendance as absent if approved
+        if (status === 'approved') {
+            const startDate = new Date(leaveRequest.startDate);
+            const endDate = new Date(leaveRequest.endDate);
+
+            // Loop through dates
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateToMark = new Date(d);
+                dateToMark.setHours(0, 0, 0, 0);
+
+                // Skip if it's a holiday or weekend? (Optional, but for now mark all days in range)
+                // Ideally we should check for weekends, but simplified for now.
+
+                const filter = {
+                    user: leaveRequest.applicant,
+                    date: dateToMark
+                };
+
+                const existingAttendance = await Attendance.findOne(filter);
+
+                if (existingAttendance) {
+                    existingAttendance.status = 'absent';
+                    existingAttendance.remarks = 'Leave Approved';
+                    existingAttendance.markedBy = req.user.userId;
+                    await existingAttendance.save();
+                } else {
+                    await Attendance.create({
+                        user: leaveRequest.applicant,
+                        role: leaveRequest.applicantRole,
+                        class: leaveRequest.class, // Can be null for teachers/admins
+                        date: dateToMark,
+                        status: 'absent',
+                        markedBy: req.user.userId,
+                        remarks: 'Leave Approved'
+                    });
+                }
+            }
+        }
 
         res.status(200).json({ success: true, data: leaveRequest });
     } catch (error) {

@@ -302,4 +302,99 @@ router.get('/staff-list', auth, async (req, res) => {
     }
 });
 
-module.exports = router;
+
+    // @route   GET /api/attendance/school-summary
+    // @desc    Get school-wide attendance summary
+    // @access  Private (Admin/Super Admin)
+    router.get('/school-summary', auth, async (req, res) => {
+        try {
+            if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+
+            const { date } = req.query;
+            const targetDate = date ? new Date(date) : new Date();
+            targetDate.setHours(0, 0, 0, 0);
+
+            // 1. Get Total Counts
+            const totalStudents = await User.countDocuments({ role: 'student' });
+            const totalTeachers = await User.countDocuments({ role: 'teacher' });
+
+            // 2. Get Attendance for Target Date
+            const attendanceRecords = await Attendance.find({
+                date: targetDate,
+                role: { $in: ['student', 'teacher'] }
+            }).populate('user', 'name role currentClass');
+
+            // 3. Calculate Stats
+            let studentPresent = 0;
+            let teacherPresent = 0;
+            const absentList = [];
+
+            // Map attendance to find who is present/absent
+            // Note: This only counts marked records. Unmarked are technically "unknown" but usually treated as absent or pending.
+            // For accurate "Absent" list, we need to know who HASN'T been marked present.
+            // But simpler approach: 
+            // Present = status 'present' or 'late'
+            // Absent = status 'absent' OR (Total - Present) if we assume everyone else is absent?
+            // Better: List explicitly marked 'absent'.
+
+            attendanceRecords.forEach(record => {
+                if (record.role === 'student') {
+                    if (['present', 'late', 'excused'].includes(record.status)) {
+                        studentPresent++;
+                    } else if (record.status === 'absent') {
+                        absentList.push({
+                            _id: record.user._id,
+                            name: record.user.name,
+                            role: 'Student',
+                            className: record.user.currentClass ? 'Class Assigned' : 'No Class', // Ideally populate class name
+                            status: 'Absent',
+                            remarks: record.remarks
+                        });
+                    }
+                } else if (record.role === 'teacher') {
+                    if (['present', 'late', 'excused'].includes(record.status)) {
+                        teacherPresent++;
+                    } else if (record.status === 'absent') {
+                        absentList.push({
+                            _id: record.user._id,
+                            name: record.user.name,
+                            role: 'Teacher',
+                            className: '-',
+                            status: 'Absent',
+                            remarks: record.remarks
+                        });
+                    }
+                }
+            });
+
+            // If we want to include "Not Marked" as absent in the list, we'd need to fetch all users and compare.
+            // For now, let's stick to explicitly marked absent for the list, 
+            // but for the counts, "Present" is accurate. 
+            // "Absent" count in summary could be (Total - Present).
+
+            res.json({
+                success: true,
+                data: {
+                    students: {
+                        total: totalStudents,
+                        present: studentPresent,
+                        absent: totalStudents - studentPresent // This assumes unmarked = absent/unknown
+                    },
+                    teachers: {
+                        total: totalTeachers,
+                        present: teacherPresent,
+                        absent: totalTeachers - teacherPresent
+                    },
+                    absentList // Only explicitly marked absent
+                }
+            });
+
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send('Server Error');
+        }
+    });
+
+    module.exports = router;
