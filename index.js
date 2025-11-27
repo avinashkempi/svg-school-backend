@@ -28,19 +28,6 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/events', require('./src/routes/events'));
-app.use('/api/news', require('./src/routes/news'));
-app.use('/api/school-info', require('./src/routes/schoolInfo'));
-app.use('/api/users', require('./src/routes/users'));
-app.use('/api/fcm', require('./src/routes/fcm'));
-app.use('/api/academic-year', require('./src/routes/academicYear'));
-app.use('/api/classes', require('./src/routes/classes'));
-app.use('/api/teachers', require('./src/routes/teachers'));
-app.use('/api/attendance', require('./src/routes/attendance'));
-app.use('/api/exams', require('./src/routes/exams'));
-app.use('/api/marks', require('./src/routes/marks'));
-app.use('/api/timetable', require('./src/routes/timetable'));
-app.use('/api/leaves', require('./src/routes/leaves'));
-app.use('/api/fees', require('./src/routes/fees'));
 app.use('/api/complaints', require('./src/routes/complaints'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 

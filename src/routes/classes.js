@@ -376,7 +376,7 @@ router.get('/:id/subjects', auth, async (req, res) => {
 // @desc    Add a subject to a class
 // @access  Class Teacher (for their class) or Admin/Super Admin
 router.post('/:id/subjects', auth, async (req, res) => {
-    const { name } = req.body;
+    const { name, globalSubjectId } = req.body;
     const classId = req.params.id;
 
     try {
@@ -392,9 +392,31 @@ router.post('/:id/subjects', auth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Only admins can add subjects' });
         }
 
+        let subjectName = name;
+        let globalSubjectRef = null;
+
+        // If globalSubjectId is provided, fetch name from it
+        if (globalSubjectId) {
+            const globalSubject = await require('../models/GlobalSubject').findById(globalSubjectId);
+            if (!globalSubject) {
+                return res.status(404).json({ success: false, message: 'Global subject not found' });
+            }
+            subjectName = globalSubject.name;
+            globalSubjectRef = globalSubject._id;
+        } else if (!name) {
+            return res.status(400).json({ success: false, message: 'Subject name or Global Subject ID is required' });
+        }
+
+        // Check if subject already exists in this class
+        const existingSubject = await Subject.findOne({ class: classId, name: subjectName });
+        if (existingSubject) {
+            return res.status(400).json({ success: false, message: 'Subject already exists in this class' });
+        }
+
         const newSubject = new Subject({
-            name,
+            name: subjectName,
             class: classId,
+            globalSubject: globalSubjectRef,
             teachers: [req.user.userId] // Add creator as teacher initially
         });
 

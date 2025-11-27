@@ -11,6 +11,10 @@ const subjectSchema = new mongoose.Schema({
         ref: 'Class',
         required: [true, 'Class is required']
     },
+    globalSubject: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GlobalSubject'
+    },
     teachers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
