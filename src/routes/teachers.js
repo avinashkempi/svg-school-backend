@@ -53,7 +53,6 @@ router.get('/my-classes-and-subjects', auth, async (req, res) => {
 
         // Get classes where user is teacher
         const asClassTeacher = await Class.find({ classTeacher: userId })
-            .populate('academicYear', 'name')
             .populate('classTeacher', 'name email')
             .sort({ name: 1 });
 
@@ -143,7 +142,6 @@ router.get('/subjects/:subjectId/classes', auth, async (req, res) => {
 
         // Get class details with student count
         const classData = await Class.findById(subject.class)
-            .populate('academicYear', 'name')
             .populate('classTeacher', 'name email');
 
         if (!classData) {
