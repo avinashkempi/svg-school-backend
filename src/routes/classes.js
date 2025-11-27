@@ -197,10 +197,10 @@ router.post('/:id/content', auth, async (req, res) => {
 
 
 // @route   POST /api/classes/:id/students
-// @desc    Add a student to a class
+// @desc    Add one or more students to a class
 // @access  Class Teacher (for their class) or Admin/Super Admin
 router.post('/:id/students', auth, async (req, res) => {
-    const { studentId } = req.body;
+    const { studentId, studentIds } = req.body;
     const classId = req.params.id;
 
     try {
@@ -226,30 +226,6 @@ router.post('/:id/students', auth, async (req, res) => {
             });
         }
 
-        // Verify the student exists and has role 'student'
-        const student = await User.findById(studentId);
-        if (!student) {
-            return res.status(404).json({
-                success: false,
-                message: 'Student not found'
-            });
-        }
-
-        if (student.role !== 'student') {
-            return res.status(400).json({
-                success: false,
-                message: 'User is not a student'
-            });
-        }
-
-        // Check if student is already in another class
-        if (student.currentClass && student.currentClass.toString() !== classId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Student is already assigned to another class'
-            });
-        }
-
         // Find active academic year
         const activeYear = await AcademicYear.findOne({ isActive: true });
         if (!activeYear) {
@@ -259,20 +235,66 @@ router.post('/:id/students', auth, async (req, res) => {
             });
         }
 
-        // Update student's currentClass and academicYear
-        student.currentClass = classId;
-        student.academicYear = activeYear._id;
-        await student.save();
+        // Determine IDs to process
+        const idsToProcess = studentIds || (studentId ? [studentId] : []);
+
+        if (idsToProcess.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No students provided'
+            });
+        }
+
+        // Process students
+        const results = {
+            added: [],
+            failed: []
+        };
+
+        for (const id of idsToProcess) {
+            try {
+                const student = await User.findById(id);
+                if (!student) {
+                    results.failed.push({ id, reason: 'Student not found' });
+                    continue;
+                }
+
+                if (student.role !== 'student') {
+                    results.failed.push({ id, name: student.name, reason: 'User is not a student' });
+                    continue;
+                }
+
+                if (student.currentClass && student.currentClass.toString() !== classId) {
+                    results.failed.push({ id, name: student.name, reason: 'Already in another class' });
+                    continue;
+                }
+
+                if (student.currentClass && student.currentClass.toString() === classId) {
+                    // Already in this class, just skip or consider success
+                    results.failed.push({ id, name: student.name, reason: 'Already in this class' });
+                    continue;
+                }
+
+                // Update student
+                student.currentClass = classId;
+                student.academicYear = activeYear._id;
+                await student.save();
+
+                results.added.push({
+                    id: student._id,
+                    name: student.name,
+                    phone: student.phone,
+                    email: student.email
+                });
+            } catch (error) {
+                results.failed.push({ id, reason: error.message });
+            }
+        }
 
         res.json({
             success: true,
-            message: 'Student added to class successfully',
-            student: {
-                id: student._id,
-                name: student.name,
-                phone: student.phone,
-                email: student.email
-            }
+            message: `Successfully added ${results.added.length} students`,
+            results
         });
     } catch (err) {
         console.error(err.message);
