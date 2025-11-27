@@ -348,7 +348,14 @@ router.get('/school-summary', auth, async (req, res) => {
         const attendanceRecords = await Attendance.find({
             date: targetDate,
             role: { $in: ['student', 'teacher'] }
-        }).populate('user', 'name role currentClass');
+        }).populate({
+            path: 'user',
+            select: 'name role currentClass',
+            populate: {
+                path: 'currentClass',
+                select: 'name section'
+            }
+        });
 
         // 3. Calculate Stats
         let studentPresent = 0;
@@ -356,13 +363,6 @@ router.get('/school-summary', auth, async (req, res) => {
         const absentList = [];
 
         // Map attendance to find who is present/absent
-        // Note: This only counts marked records. Unmarked are technically "unknown" but usually treated as absent or pending.
-        // For accurate "Absent" list, we need to know who HASN'T been marked present.
-        // But simpler approach: 
-        // Present = status 'present' or 'late'
-        // Absent = status 'absent' OR (Total - Present) if we assume everyone else is absent?
-        // Better: List explicitly marked 'absent'.
-
         attendanceRecords.forEach(record => {
             if (record.role === 'student') {
                 if (['present', 'late', 'excused'].includes(record.status)) {
@@ -372,7 +372,9 @@ router.get('/school-summary', auth, async (req, res) => {
                         _id: record.user._id,
                         name: record.user.name,
                         role: 'Student',
-                        className: record.user.currentClass ? 'Class Assigned' : 'No Class', // Ideally populate class name
+                        className: record.user.currentClass
+                            ? `${record.user.currentClass.name} ${record.user.currentClass.section}`
+                            : 'No Class',
                         status: 'Absent',
                         remarks: record.remarks
                     });
