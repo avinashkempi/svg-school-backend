@@ -39,12 +39,14 @@ router.post('/mark', auth, async (req, res) => {
         const attendancePromises = attendanceRecords.map(async (record) => {
             const { studentId, status, remarks, period } = record;
 
+            // FORCE CLASS-BASED ATTENDANCE: Ignore subjectId and period
+            // Attendance is for the class on that date, regardless of who marks it
             const filter = {
                 user: studentId,
                 class: classId,
                 date: new Date(date).setHours(0, 0, 0, 0),
-                subject: subjectId || null,
-                period: period || null
+                subject: null,
+                period: null
             };
 
             const existingAttendance = await Attendance.findOne(filter);
@@ -59,11 +61,11 @@ router.post('/mark', auth, async (req, res) => {
                     user: studentId,
                     role: 'student',
                     class: classId,
-                    subject: subjectId || null,
+                    subject: null, // Always null for class attendance
                     date: new Date(date).setHours(0, 0, 0, 0),
                     status,
                     markedBy: req.user.userId,
-                    period: period || null,
+                    period: null, // Always null for class attendance
                     remarks: remarks || ''
                 });
                 return await attendance.save();
