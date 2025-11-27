@@ -17,7 +17,7 @@ router.post('/mark', auth, async (req, res) => {
         const teacherUser = await User.findById(req.user.userId);
         let isAuthorized = false;
 
-        // Check if class teacher
+        // Check if teacher
         const classData = await Class.findById(classId);
         if (classData && classData.classTeacher && classData.classTeacher.toString() === req.user.userId) {
             isAuthorized = true;
@@ -111,7 +111,7 @@ router.post('/mark-staff', auth, async (req, res) => {
                 const user = await User.findById(userId);
                 const attendance = new Attendance({
                     user: userId,
-                    role: user.role, // 'class teacher' or others
+                    role: user.role, // 'teacher' or others
                     date: new Date(date).setHours(0, 0, 0, 0),
                     status,
                     markedBy: req.user.userId,
@@ -274,12 +274,12 @@ router.get('/staff-list', auth, async (req, res) => {
         const targetDate = date ? new Date(date).setHours(0, 0, 0, 0) : new Date().setHours(0, 0, 0, 0);
 
         // Get all teachers
-        const teachers = await User.find({ role: 'class teacher' }).select('name email phone');
+        const teachers = await User.find({ role: 'teacher' }).select('name email phone');
 
         // Get attendance for this date
         const attendance = await Attendance.find({
             date: targetDate,
-            role: 'class teacher'
+            role: 'teacher'
         });
 
         const result = teachers.map(teacher => {

@@ -90,11 +90,11 @@ router.get('/my-leaves', authenticateToken, async (req, res) => {
 // @desc    Get pending leaves (Role based)
 // @route   GET /api/leaves/pending
 // @access  Private (Teacher, Admin, Super Admin)
-router.get('/pending', authenticateToken, checkRole(['class teacher', 'admin', 'super admin']), async (req, res) => {
+router.get('/pending', authenticateToken, checkRole(['teacher', 'admin', 'super admin']), async (req, res) => {
     try {
         let query = { status: 'pending' };
 
-        if (req.user.role === 'class teacher') {
+        if (req.user.role === 'teacher') {
             // Teacher sees pending leaves for students in their class
             const classObj = await Class.findOne({ classTeacher: req.user.userId });
             if (!classObj) {
@@ -105,10 +105,10 @@ router.get('/pending', authenticateToken, checkRole(['class teacher', 'admin', '
         } else if (req.user.role === 'admin') {
             // Admin sees pending leaves for Students (All) AND Teachers
             // Can filter by role if needed, but "pending" implies all pending they can act on
-            query.applicantRole = { $in: ['student', 'class teacher'] };
+            query.applicantRole = { $in: ['student', 'teacher'] };
         } else if (req.user.role === 'super admin') {
             // Super Admin sees ALL pending leaves (including Admins)
-            query.applicantRole = { $in: ['student', 'class teacher', 'admin'] };
+            query.applicantRole = { $in: ['student', 'teacher', 'admin'] };
         }
 
         console.log('[Pending Leaves] Query:', query);
@@ -128,7 +128,7 @@ router.get('/pending', authenticateToken, checkRole(['class teacher', 'admin', '
 // @desc    Approve/Reject leave request
 // @route   PUT /api/leaves/:id/action
 // @access  Private (Teacher, Admin, Super Admin)
-router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin', 'super admin']), async (req, res) => {
+router.put('/:id/action', authenticateToken, checkRole(['teacher', 'admin', 'super admin']), async (req, res) => {
     try {
         const { status, reason, rejectionReason, rejectionComments } = req.body; // status: 'approved' or 'rejected'
 
@@ -152,7 +152,7 @@ router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin'
 
         if (applicantRole === 'student') {
             // Student leave: Teacher OR Admin OR Super Admin can approve
-            if (req.user.role === 'class teacher') {
+            if (req.user.role === 'teacher') {
                 // Check if it's their class
                 if (leaveRequest.class) {
                     const classObj = await Class.findOne({ classTeacher: req.user.userId });
@@ -163,7 +163,7 @@ router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin'
             } else if (['admin', 'super admin'].includes(req.user.role)) {
                 isAuthorized = true;
             }
-        } else if (applicantRole === 'class teacher') {
+        } else if (applicantRole === 'teacher') {
             // Teacher leave: Admin OR Super Admin can approve
             if (['admin', 'super admin'].includes(req.user.role)) {
                 isAuthorized = true;

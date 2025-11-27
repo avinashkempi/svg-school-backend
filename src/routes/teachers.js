@@ -18,11 +18,11 @@ router.get('/my-subjects', auth, async (req, res) => {
             .populate('teachers', 'name email')
             .sort({ 'class.name': 1, name: 1 });
 
-        // Get classes where user is class teacher
+        // Get classes where user is teacher
         const classTeacherClasses = await Class.find({ classTeacher: userId }).select('_id');
         const classTeacherIds = classTeacherClasses.map(c => c._id.toString());
 
-        // Add flag to indicate if teacher is class teacher of that class
+        // Add flag to indicate if teacher is teacher of that class
         const subjectsWithFlags = subjects.map(subject => ({
             _id: subject._id,
             name: subject.name,
@@ -42,13 +42,13 @@ router.get('/my-subjects', auth, async (req, res) => {
 });
 
 // @route   GET /api/teachers/my-classes-and-subjects
-// @desc    Get unified data for teacher dashboard (classes as class teacher + subjects)
+// @desc    Get unified data for teacher dashboard (classes as teacher + subjects)
 // @access  Private (Teacher)
 router.get('/my-classes-and-subjects', auth, async (req, res) => {
     try {
         const userId = req.user.userId;
 
-        // Get classes where user is class teacher
+        // Get classes where user is teacher
         const asClassTeacher = await Class.find({ classTeacher: userId })
             .populate('academicYear', 'name')
             .populate('classTeacher', 'name email')
@@ -180,7 +180,7 @@ router.post('/subjects/:subjectId/assign', [auth, checkRole(['admin', 'super adm
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        if (teacher.role !== 'class teacher' && teacher.role !== 'staff') {
+        if (teacher.role !== 'teacher' && teacher.role !== 'staff') {
             return res.status(400).json({ success: false, message: 'User is not a teacher' });
         }
 
@@ -263,7 +263,7 @@ router.put('/subjects/:subjectId/teachers', [auth, checkRole(['admin', 'super ad
         // Verify all teachers exist and are valid
         const teachers = await User.find({
             _id: { $in: teacherIds },
-            role: { $in: ['class teacher', 'staff'] }
+            role: { $in: ['teacher', 'staff'] }
         });
 
         if (teachers.length !== teacherIds.length) {
@@ -312,7 +312,7 @@ router.put('/subjects/:subjectId/teachers', [auth, checkRole(['admin', 'super ad
 router.get('/admin/teacher-subject-matrix', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
         const teachers = await User.find({
-            role: { $in: ['class teacher', 'staff'] }
+            role: { $in: ['teacher', 'staff'] }
         })
             .populate({
                 path: 'subjects',

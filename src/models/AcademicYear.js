@@ -5,7 +5,13 @@ const academicYearSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Academic year name is required'], // e.g., "2024-2025"
         trim: true,
-        unique: true
+        unique: true,
+        validate: {
+            validator: function (v) {
+                return /^\d{4}-\d{4}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid academic year format (YYYY-YYYY)!`
+        }
     },
     startDate: {
         type: Date,

@@ -16,11 +16,7 @@ const classSchema = new mongoose.Schema({
         enum: ['Ugar', 'Mangasuli', 'Main'], // Add other branches as needed
         default: 'Main'
     },
-    academicYear: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'AcademicYear',
-        required: [true, 'Academic Year is required']
-    },
+    // academicYear removed for permanent classes
     classTeacher: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -31,7 +27,7 @@ const classSchema = new mongoose.Schema({
     }
 });
 
-// Compound index to ensure unique class name per branch and academic year
-classSchema.index({ name: 1, section: 1, branch: 1, academicYear: 1 }, { unique: true });
+// Compound index to ensure unique class name per branch
+classSchema.index({ name: 1, section: 1, branch: 1 }, { unique: true });
 
 module.exports = mongoose.model('Class', classSchema);

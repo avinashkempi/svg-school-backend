@@ -12,12 +12,11 @@ const notificationService = require('../services/notificationService');
 
 
 // @route   GET /api/classes/my-classes
-// @desc    Get classes where the logged-in user is the class teacher
+// @desc    Get classes where the logged-in user is the teacher
 // @access  Private (Teacher)
 router.get('/my-classes', auth, async (req, res) => {
     try {
         const classes = await Class.find({ classTeacher: req.user.userId })
-            .populate('academicYear', 'name')
             .populate('classTeacher', 'name email')
             .sort({ name: 1 });
         res.json(classes);
@@ -33,9 +32,9 @@ router.get('/my-classes', auth, async (req, res) => {
 router.get('/admin/init', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
         const [classes, academicYears, teachers] = await Promise.all([
-            Class.find().populate('academicYear', 'name').populate('classTeacher', 'name email').sort({ name: 1 }),
-            AcademicYear.find().sort({ startYear: -1 }),
-            User.find({ role: { $in: ['class teacher', 'staff'] } }).select('name email role')
+            Class.find().populate('classTeacher', 'name email').sort({ name: 1 }),
+            AcademicYear.find().sort({ startDate: -1 }),
+            User.find({ role: { $in: ['teacher', 'staff'] } }).select('name email role')
         ]);
 
         res.json({
@@ -55,7 +54,7 @@ router.get('/admin/init', [auth, checkRole(['admin', 'super admin'])], async (re
 router.get('/:id/full-details', auth, async (req, res) => {
     try {
         const [classData, subjects, students] = await Promise.all([
-            Class.findById(req.params.id).populate('academicYear', 'name').populate('classTeacher', 'name email'),
+            Class.findById(req.params.id).populate('classTeacher', 'name email'),
             Subject.find({ class: req.params.id }).populate('teachers', 'name email').sort({ name: 1 }),
             User.find({ currentClass: req.params.id, role: 'student' }).select('name phone email admissionDate guardianName guardianPhone').sort({ name: 1 })
         ]);
@@ -84,14 +83,13 @@ router.get('/:id/full-details', auth, async (req, res) => {
 // @desc    Create a new class
 // @access  Admin/Super Admin
 router.post('/', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
-    const { name, section, branch, academicYear, classTeacher } = req.body;
+    const { name, section, branch, classTeacher } = req.body;
 
     try {
         const newClass = new Class({
             name,
             section,
             branch,
-            academicYear,
             classTeacher
         });
 
@@ -107,7 +105,7 @@ router.post('/', [auth, checkRole(['admin', 'super admin'])], async (req, res) =
 // @desc    Update a class
 // @access  Super Admin
 router.put('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
-    const { name, section, branch, academicYear, classTeacher } = req.body;
+    const { name, section, branch, classTeacher } = req.body;
 
     try {
         let classData = await Class.findById(req.params.id);
@@ -116,7 +114,6 @@ router.put('/:id', [auth, checkRole(['super admin'])], async (req, res) => {
         classData.name = name || classData.name;
         classData.section = section !== undefined ? section : classData.section;
         classData.branch = branch || classData.branch;
-        classData.academicYear = academicYear || classData.academicYear;
         classData.classTeacher = classTeacher || classData.classTeacher;
 
         await classData.save();
@@ -216,7 +213,7 @@ router.post('/:id/students', auth, async (req, res) => {
             });
         }
 
-        // Check authorization: must be class teacher of this class OR admin/super admin
+        // Check authorization: must be teacher of this class OR admin/super admin
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
         const isClassTeacher = classData.classTeacher &&
@@ -225,7 +222,7 @@ router.post('/:id/students', auth, async (req, res) => {
         if (!isAdmin && !isClassTeacher) {
             return res.status(403).json({
                 success: false,
-                message: 'Only the class teacher or admin can add students to this class'
+                message: 'Only the teacher or admin can add students to this class'
             });
         }
 
@@ -253,9 +250,18 @@ router.post('/:id/students', auth, async (req, res) => {
             });
         }
 
+        // Find active academic year
+        const activeYear = await AcademicYear.findOne({ isActive: true });
+        if (!activeYear) {
+            return res.status(400).json({
+                success: false,
+                message: 'No active academic year found. Please contact admin.'
+            });
+        }
+
         // Update student's currentClass and academicYear
         student.currentClass = classId;
-        student.academicYear = classData.academicYear;
+        student.academicYear = activeYear._id;
         await student.save();
 
         res.json({
@@ -290,7 +296,7 @@ router.delete('/:id/students/:studentId', auth, async (req, res) => {
             });
         }
 
-        // Check authorization: must be class teacher of this class OR admin/super admin
+        // Check authorization: must be teacher of this class OR admin/super admin
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
         const isClassTeacher = classData.classTeacher &&
@@ -299,7 +305,7 @@ router.delete('/:id/students/:studentId', auth, async (req, res) => {
         if (!isAdmin && !isClassTeacher) {
             return res.status(403).json({
                 success: false,
-                message: 'Only the class teacher or admin can remove students from this class'
+                message: 'Only the teacher or admin can remove students from this class'
             });
         }
 

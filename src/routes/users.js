@@ -36,7 +36,7 @@ router.get('/search', searchUsers);
 // Get all users (admin only, except teachers can get students)
 router.get('/', (req, res, next) => {
   // Allow teachers to access if they're filtering by role=student
-  if (req.query.role === 'student' && req.user.role === 'class teacher') {
+  if (req.query.role === 'student' && req.user.role === 'teacher') {
     return next();
   }
   // Otherwise require admin

@@ -8,7 +8,7 @@ const AttendanceSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['student', 'class teacher', 'staff', 'admin'],
+        enum: ['student', 'teacher', 'staff', 'admin'],
         required: true
     },
     class: {

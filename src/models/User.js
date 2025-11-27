@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
   // Role field for access control
   role: {
     type: String,
-    enum: ['student', 'class teacher', 'staff', 'admin', 'super admin'],
+    enum: ['student', 'teacher', 'staff', 'admin', 'super admin'], // Removed 'class teacher', added 'teacher'
     default: 'student'
   },
 
