@@ -364,7 +364,9 @@ router.delete('/:id/students/:studentId', auth, async (req, res) => {
 // @access  Private
 router.get('/:id/subjects', auth, async (req, res) => {
     try {
-        const subjects = await Subject.find({ class: req.params.id }).sort({ name: 1 });
+        const subjects = await Subject.find({ class: req.params.id })
+            .populate('teachers', 'name email')
+            .sort({ name: 1 });
         res.json(subjects);
     } catch (err) {
         console.error(err.message);
@@ -417,7 +419,8 @@ router.post('/:id/subjects', auth, async (req, res) => {
             name: subjectName,
             class: classId,
             globalSubject: globalSubjectRef,
-            teachers: [req.user.userId] // Add creator as teacher initially
+            globalSubject: globalSubjectRef,
+            teachers: [] // Start with no teachers assigned
         });
 
         const savedSubject = await newSubject.save();
