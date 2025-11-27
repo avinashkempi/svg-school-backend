@@ -13,10 +13,13 @@ router.get('/my-subjects', auth, async (req, res) => {
         const userId = req.user.userId;
 
         // Find all subjects where this teacher is assigned
-        const subjects = await Subject.find({ teachers: userId })
+        let subjects = await Subject.find({ teachers: userId })
             .populate('class', 'name section branch')
             .populate('teachers', 'name email')
             .sort({ 'class.name': 1, name: 1 });
+
+        // Filter out subjects where class population failed
+        subjects = subjects.filter(s => s.class);
 
         // Get classes where user is teacher
         const classTeacherClasses = await Class.find({ classTeacher: userId }).select('_id');
@@ -75,9 +78,12 @@ router.get('/my-classes-and-subjects', auth, async (req, res) => {
         );
 
         // Get all subjects teacher teaches (including in other classes)
-        const subjects = await Subject.find({ teachers: userId })
+        let subjects = await Subject.find({ teachers: userId })
             .populate('class', 'name section branch')
             .sort({ name: 1 });
+
+        // Filter out subjects where class population failed (e.g. class deleted)
+        subjects = subjects.filter(s => s.class);
 
         // Group subjects by class
         const classTeacherIds = asClassTeacher.map(c => c._id.toString());
