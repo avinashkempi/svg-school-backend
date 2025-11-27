@@ -243,6 +243,90 @@ router.get('/my-attendance', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/attendance/student/:studentId/summary
+// @desc    Get detailed attendance summary for a student
+// @access  Private
+router.get('/student/:studentId/summary', auth, async (req, res) => {
+    try {
+        const { studentId } = req.params;
+
+        // 1. Overall Stats
+        const allAttendance = await Attendance.find({ user: studentId });
+        const totalClasses = allAttendance.length;
+        const presentClasses = allAttendance.filter(a => ['present', 'late', 'excused'].includes(a.status)).length;
+        const overallPercentage = totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : 0;
+
+        // 2. Subject-wise Stats
+        const subjectStats = {};
+
+        // Pre-fetch all subjects to get names
+        const subjects = await Subject.find({});
+        const subjectMap = subjects.reduce((acc, sub) => {
+            acc[sub._id.toString()] = sub.name;
+            return acc;
+        }, {});
+
+        allAttendance.forEach(record => {
+            const subjectId = record.subject ? record.subject.toString() : 'class_attendance';
+            const subjectName = record.subject ? (subjectMap[subjectId] || 'Unknown Subject') : 'Class Attendance';
+
+            if (!subjectStats[subjectId]) {
+                subjectStats[subjectId] = {
+                    subjectId,
+                    name: subjectName,
+                    total: 0,
+                    present: 0
+                };
+            }
+
+            subjectStats[subjectId].total++;
+            if (['present', 'late', 'excused'].includes(record.status)) {
+                subjectStats[subjectId].present++;
+            }
+        });
+
+        const subjectWise = Object.values(subjectStats).map(stat => ({
+            ...stat,
+            percentage: stat.total > 0 ? ((stat.present / stat.total) * 100).toFixed(1) : 0
+        }));
+
+        // 3. Monthly Breakdown
+        const monthlyStats = {};
+        allAttendance.forEach(record => {
+            const date = new Date(record.date);
+            const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            if (!monthlyStats[monthKey]) {
+                monthlyStats[monthKey] = { month: monthKey, total: 0, present: 0 };
+            }
+
+            monthlyStats[monthKey].total++;
+            if (['present', 'late', 'excused'].includes(record.status)) {
+                monthlyStats[monthKey].present++;
+            }
+        });
+
+        const monthlyBreakdown = Object.values(monthlyStats).map(stat => ({
+            ...stat,
+            percentage: stat.total > 0 ? ((stat.present / stat.total) * 100).toFixed(1) : 0
+        }));
+
+        res.json({
+            overall: {
+                total: totalClasses,
+                present: presentClasses,
+                percentage: overallPercentage
+            },
+            subjectWise,
+            monthlyBreakdown
+        });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   GET /api/attendance/student/:studentId
 // @desc    Get student's attendance history (Legacy/Admin view)
 // @access  Private (Student/Teacher/Admin)
