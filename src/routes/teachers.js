@@ -118,8 +118,9 @@ router.get('/my-classes-and-subjects', auth, async (req, res) => {
             }))
         });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Error in my-classes-and-subjects:', err);
+        console.error('Stack:', err.stack);
+        res.status(500).send('Server Error: ' + err.message);
     }
 });
 
