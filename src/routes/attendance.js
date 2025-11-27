@@ -453,10 +453,10 @@ router.get('/school-summary', auth, async (req, res) => {
                     studentPresent++;
                 } else if (record.status === 'absent') {
                     absentList.push({
-                        _id: record.user._id,
-                        name: record.user.name,
+                        _id: record.user?._id || 'unknown',
+                        name: record.user?.name || 'Unknown User',
                         role: 'Student',
-                        className: record.user.currentClass
+                        className: record.user?.currentClass
                             ? `${record.user.currentClass.name} ${record.user.currentClass.section}`
                             : 'No Class',
                         status: 'Absent',
@@ -468,8 +468,8 @@ router.get('/school-summary', auth, async (req, res) => {
                     teacherPresent++;
                 } else if (record.status === 'absent') {
                     absentList.push({
-                        _id: record.user._id,
-                        name: record.user.name,
+                        _id: record.user?._id || 'unknown',
+                        name: record.user?.name || 'Unknown User',
                         role: 'Teacher',
                         className: '-',
                         status: 'Absent',

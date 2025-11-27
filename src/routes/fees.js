@@ -109,7 +109,7 @@ router.get('/structure/class/:classId', auth, async (req, res) => {
 // @access  Admin/Super Admin
 router.post('/payment', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
-        const { studentId, amount, paymentMethod, transactionId, remarks } = req.body;
+        const { studentId, amount, paymentMethod, transactionId, remarks, bookNumber, manualReceiptNumber } = req.body;
 
         const student = await User.findById(studentId);
         if (!student) return res.status(404).json({ message: 'Student not found' });
@@ -138,6 +138,10 @@ router.post('/payment', [auth, checkRole(['admin', 'super admin'])], async (req,
             paymentMethod,
             transactionId,
             receiptNumber,
+            transactionId,
+            receiptNumber,
+            bookNumber,
+            manualReceiptNumber,
             remarks,
             collectedBy: req.user.userId
         });

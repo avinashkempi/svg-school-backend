@@ -38,6 +38,12 @@ const FeePaymentSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    bookNumber: {
+        type: String
+    },
+    manualReceiptNumber: {
+        type: String
+    },
     status: {
         type: String,
         enum: ['success', 'pending', 'failed'],
