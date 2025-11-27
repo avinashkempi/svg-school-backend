@@ -35,16 +35,20 @@ router.post('/mark', auth, async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to mark attendance for this class/subject' });
         }
 
-        // Process attendance records
-        const attendancePromises = attendanceRecords.map(async (record) => {
+        // Process attendance records sequentially to avoid race conditions and improve debugging
+        for (const record of attendanceRecords) {
             const { studentId, status, remarks, period } = record;
 
             // FORCE CLASS-BASED ATTENDANCE: Ignore subjectId and period
             // Attendance is for the class on that date, regardless of who marks it
+            // Ensure date is a Date object, not a timestamp number
+            const attendanceDate = new Date(date);
+            attendanceDate.setHours(0, 0, 0, 0);
+
             const filter = {
                 user: studentId,
                 class: classId,
-                date: new Date(date).setHours(0, 0, 0, 0),
+                date: attendanceDate,
                 subject: null,
                 period: null
             };
@@ -55,28 +59,28 @@ router.post('/mark', auth, async (req, res) => {
                 existingAttendance.status = status;
                 existingAttendance.remarks = remarks || '';
                 existingAttendance.markedBy = req.user.userId;
-                return await existingAttendance.save();
+                await existingAttendance.save();
             } else {
                 const attendance = new Attendance({
                     user: studentId,
                     role: 'student',
                     class: classId,
                     subject: null, // Always null for class attendance
-                    date: new Date(date).setHours(0, 0, 0, 0),
+                    date: attendanceDate,
                     status,
                     markedBy: req.user.userId,
                     period: null, // Always null for class attendance
                     remarks: remarks || ''
                 });
-                return await attendance.save();
+                await attendance.save();
             }
-        });
+        }
 
-        await Promise.all(attendancePromises);
+        res.json({ message: 'Attendance marked successfully' });
         res.json({ message: 'Attendance marked successfully' });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Attendance Mark Error:', err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
 
