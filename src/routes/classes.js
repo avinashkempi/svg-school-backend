@@ -81,8 +81,8 @@ router.get('/:id/full-details', auth, async (req, res) => {
 
 // @route   POST /api/classes
 // @desc    Create a new class
-// @access  Admin/Super Admin
-router.post('/', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
+// @access  Super Admin
+router.post('/', [auth, checkRole(['super admin'])], async (req, res) => {
     const { name, section, branch, classTeacher } = req.body;
 
     try {
