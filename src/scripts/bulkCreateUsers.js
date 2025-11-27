@@ -3,8 +3,6 @@ const connectDB = require('../config/database');
 const User = require('../models/User');
 require('dotenv').config(); // Load .env from current directory
 
-console.log('MONGODB_URI:', process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : 'Not Set');
-
 const usersToCreate = [
     { name: 'Admin', phone: '9999999998', password: 'Admin@123', role: 'admin' },
     { name: 'Teacher A', phone: '9999999997', password: 'Teacher@123', role: 'teacher' },
