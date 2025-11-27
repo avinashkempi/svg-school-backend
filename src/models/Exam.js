@@ -7,7 +7,7 @@ const ExamSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['unit-test', 'mid-term', 'final', 'practical', 'assignment'],
+        enum: ['unit-test', 'mid-term', 'final', 'practical'],
         required: true
     },
     class: {

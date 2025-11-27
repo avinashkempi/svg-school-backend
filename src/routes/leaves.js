@@ -7,14 +7,13 @@ const { authenticateToken, checkRole } = require('../middleware/auth');
 
 // @desc    Apply for leave
 // @route   POST /api/leaves/apply
-// @access  Private (Student)
-router.post('/apply', authenticateToken, checkRole(['student']), async (req, res) => {
+// @access  Private (All)
+router.post('/apply', authenticateToken, async (req, res) => {
     try {
-        const { startDate, endDate, reason } = req.body;
+        const { startDate, endDate, reason, leaveType, halfDaySlot } = req.body;
 
         // Log request for debugging
-        console.log('[Leave Apply] Request from user:', req.user.userId);
-        console.log('[Leave Apply] Request body:', { startDate, endDate, reason });
+        console.log('[Leave Apply] Request from user:', req.user.userId, 'Role:', req.user.role);
 
         // Validate required fields
         if (!startDate || !endDate || !reason) {
@@ -42,50 +41,43 @@ router.post('/apply', authenticateToken, checkRole(['student']), async (req, res
             });
         }
 
-        // Get student's current class
-        const student = await User.findById(req.user.userId);
-        if (!student) {
-            console.error('[Leave Apply] Student not found:', req.user.userId);
-            return res.status(404).json({ success: false, message: 'Student not found' });
+        const user = await User.findById(req.user.userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (!student.currentClass) {
-            console.error('[Leave Apply] Student has no currentClass:', req.user.userId);
-            return res.status(400).json({ success: false, message: 'Student is not assigned to any class' });
+        let classId = undefined;
+        if (req.user.role === 'student') {
+            if (!user.currentClass) {
+                return res.status(400).json({ success: false, message: 'Student is not assigned to any class' });
+            }
+            classId = user.currentClass;
         }
 
         const leaveRequest = await LeaveRequest.create({
-            student: req.user.userId,
-            class: student.currentClass,
+            applicant: req.user.userId,
+            applicantRole: req.user.role,
+            class: classId,
             startDate: start,
             endDate: end,
-            reason
+            reason,
+            leaveType: leaveType || 'full',
+            halfDaySlot: leaveType === 'half' ? halfDaySlot : undefined
         });
 
-        console.log('[Leave Apply] Leave request created successfully:', leaveRequest._id);
         res.status(201).json({ success: true, data: leaveRequest });
     } catch (error) {
-        console.error('[Leave Apply] Error occurred:');
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('User ID:', req.user?.userId);
-        console.error('Request body:', req.body);
-
-        // Return more helpful error message
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        console.error('[Leave Apply] Error:', error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 });
 
 // @desc    Get my leave history
 // @route   GET /api/leaves/my-leaves
-// @access  Private (Student)
-router.get('/my-leaves', authenticateToken, checkRole(['student']), async (req, res) => {
+// @access  Private (All)
+router.get('/my-leaves', authenticateToken, async (req, res) => {
     try {
-        const leaves = await LeaveRequest.find({ student: req.user.userId })
+        const leaves = await LeaveRequest.find({ applicant: req.user.userId })
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: leaves });
@@ -95,40 +87,36 @@ router.get('/my-leaves', authenticateToken, checkRole(['student']), async (req, 
     }
 });
 
-// @desc    Get leave requests for a class
-// @route   GET /api/leaves/class-leaves
-// @access  Private (Teacher, Admin)
-router.get('/class-leaves', authenticateToken, checkRole(['class teacher', 'admin']), async (req, res) => {
+// @desc    Get pending leaves (Role based)
+// @route   GET /api/leaves/pending
+// @access  Private (Teacher, Admin, Super Admin)
+router.get('/pending', authenticateToken, checkRole(['class teacher', 'admin', 'super admin']), async (req, res) => {
     try {
-        let classId;
+        let query = { status: 'pending' };
 
         if (req.user.role === 'class teacher') {
-            // Find class where user is the class teacher
+            // Teacher sees pending leaves for students in their class
             const classObj = await Class.findOne({ classTeacher: req.user.userId });
             if (!classObj) {
-                return res.status(404).json({ success: false, message: 'No class assigned to this teacher' });
+                return res.status(200).json({ success: true, data: [] }); // No class assigned
             }
-            classId = classObj._id;
-        } else {
-            // Admin can optionally provide classId in query, otherwise might need different logic
-            // For now, let's assume admin provides classId or we fetch all if not provided (or maybe just required for now)
-            if (req.query.classId) {
-                classId = req.query.classId;
-            } else {
-                // If admin doesn't provide classId, maybe return all pending leaves?
-                // Let's stick to class-specific for this endpoint to keep it simple for now, 
-                // or allow fetching all if admin.
-            }
+            query.class = classObj._id;
+            query.applicantRole = 'student';
+        } else if (req.user.role === 'admin') {
+            // Admin sees pending leaves for Students (All) AND Teachers
+            // Can filter by role if needed, but "pending" implies all pending they can act on
+            query.applicantRole = { $in: ['student', 'class teacher'] };
+        } else if (req.user.role === 'super admin') {
+            // Super Admin sees ALL pending leaves (including Admins)
+            query.applicantRole = { $in: ['student', 'class teacher', 'admin'] };
         }
 
-        let query = {};
-        if (classId) {
-            query.class = classId;
-        }
-
+        console.log('[Pending Leaves] Query:', query);
         const leaves = await LeaveRequest.find(query)
-            .populate('student', 'name')
+            .populate('applicant', 'name role')
+            .populate('class', 'name section')
             .sort({ createdAt: -1 });
+        console.log('[Pending Leaves] Found:', leaves.length);
 
         res.status(200).json({ success: true, data: leaves });
     } catch (error) {
@@ -139,32 +127,65 @@ router.get('/class-leaves', authenticateToken, checkRole(['class teacher', 'admi
 
 // @desc    Approve/Reject leave request
 // @route   PUT /api/leaves/:id/action
-// @access  Private (Teacher, Admin)
-router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin']), async (req, res) => {
+// @access  Private (Teacher, Admin, Super Admin)
+router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin', 'super admin']), async (req, res) => {
     try {
-        const { status, reason } = req.body; // status: 'approved' or 'rejected'
+        const { status, reason, rejectionReason, rejectionComments } = req.body; // status: 'approved' or 'rejected'
 
         if (!['approved', 'rejected'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
 
-        let leaveRequest = await LeaveRequest.findById(req.params.id);
+        if (status === 'rejected' && (!rejectionReason || !rejectionComments)) {
+            return res.status(400).json({ success: false, message: 'Rejection reason and comments are required' });
+        }
+
+        let leaveRequest = await LeaveRequest.findById(req.params.id).populate('applicant');
 
         if (!leaveRequest) {
             return res.status(404).json({ success: false, message: 'Leave request not found' });
         }
 
-        // Check if teacher is authorized for this class
-        if (req.user.role === 'class teacher') {
-            const classObj = await Class.findOne({ classTeacher: req.user.userId });
-            if (!classObj || classObj._id.toString() !== leaveRequest.class.toString()) {
-                return res.status(403).json({ success: false, message: 'Not authorized to manage leaves for this class' });
+        // Authorization Check (Any One Approves logic)
+        let isAuthorized = false;
+        const applicantRole = leaveRequest.applicantRole;
+
+        if (applicantRole === 'student') {
+            // Student leave: Teacher OR Admin OR Super Admin can approve
+            if (req.user.role === 'class teacher') {
+                // Check if it's their class
+                if (leaveRequest.class) {
+                    const classObj = await Class.findOne({ classTeacher: req.user.userId });
+                    if (classObj && classObj._id.toString() === leaveRequest.class.toString()) {
+                        isAuthorized = true;
+                    }
+                }
+            } else if (['admin', 'super admin'].includes(req.user.role)) {
+                isAuthorized = true;
             }
+        } else if (applicantRole === 'class teacher') {
+            // Teacher leave: Admin OR Super Admin can approve
+            if (['admin', 'super admin'].includes(req.user.role)) {
+                isAuthorized = true;
+            }
+        } else if (applicantRole === 'admin') {
+            // Admin leave: Super Admin can approve
+            if (req.user.role === 'super admin') {
+                isAuthorized = true;
+            }
+        }
+
+        if (!isAuthorized) {
+            return res.status(403).json({ success: false, message: 'Not authorized to manage this leave request' });
         }
 
         leaveRequest.status = status;
         leaveRequest.actionBy = req.user.userId;
-        leaveRequest.actionReason = reason;
+        leaveRequest.actionReason = reason; // Generic note
+        if (status === 'rejected') {
+            leaveRequest.rejectionReason = rejectionReason;
+            leaveRequest.rejectionComments = rejectionComments;
+        }
         leaveRequest.actionDate = Date.now();
 
         await leaveRequest.save();
@@ -178,40 +199,67 @@ router.put('/:id/action', authenticateToken, checkRole(['class teacher', 'admin'
 
 // @desc    Get daily leave stats (Who is on leave today)
 // @route   GET /api/leaves/daily-stats
-// @access  Private (Admin)
-router.get('/daily-stats', authenticateToken, checkRole(['admin']), async (req, res) => {
+// @access  Private (Admin, Super Admin)
+router.get('/daily-stats', authenticateToken, checkRole(['admin', 'super admin']), async (req, res) => {
     try {
         const dateStr = req.query.date; // YYYY-MM-DD
-        let targetDate;
+        let targetDate = dateStr ? new Date(dateStr) : new Date();
 
-        if (dateStr) {
-            targetDate = new Date(dateStr);
-        } else {
-            targetDate = new Date();
-        }
-
-        // Set time to start of day and end of day for accurate comparison if needed, 
-        // but since we store startDate and endDate as dates, we need to check if targetDate falls within the range.
-        // We'll assume the stored dates might have time components or are UTC. 
-        // Best to compare ranges.
-
-        // Simple check: startDate <= targetDate AND endDate >= targetDate
-        // Note: This ignores time components if we just want "is on leave this day".
-        // Let's normalize targetDate to start of day for comparison if we want to be precise, 
-        // but MongoDB queries with dates can be tricky.
-
-        // Let's construct a query where the range overlaps with the target day.
-        // Actually, simpler: find leaves where startDate <= targetDate AND endDate >= targetDate
-        // AND status is 'approved'.
-
+        // Find approved leaves that overlap with targetDate
         const leaves = await LeaveRequest.find({
             startDate: { $lte: targetDate },
             endDate: { $gte: targetDate },
             status: 'approved'
-        }).populate('student', 'name currentClass')
+        }).populate('applicant', 'name role')
             .populate('class', 'name section');
 
         res.status(200).json({ success: true, data: leaves });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// @desc    Get leave balance
+// @route   GET /api/leaves/balance
+// @access  Private (Teacher, Admin, Super Admin)
+router.get('/balance', authenticateToken, async (req, res) => {
+    try {
+        // Simple calculation: Total allowed (e.g., 12) - Approved Leaves this year
+        // In a real app, "Total allowed" might come from a settings/policy collection
+        const TOTAL_ALLOWED = 12;
+
+        const currentYear = new Date().getFullYear();
+        const startOfYear = new Date(currentYear, 0, 1);
+        const endOfYear = new Date(currentYear, 11, 31);
+
+        const approvedLeaves = await LeaveRequest.find({
+            applicant: req.user.userId,
+            status: 'approved',
+            startDate: { $gte: startOfYear },
+            endDate: { $lte: endOfYear }
+        });
+
+        let usedDays = 0;
+        approvedLeaves.forEach(leave => {
+            if (leave.leaveType === 'half') {
+                usedDays += 0.5;
+            } else {
+                // Calculate days difference
+                const diffTime = Math.abs(leave.endDate - leave.startDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                usedDays += diffDays;
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                total: TOTAL_ALLOWED,
+                used: usedDays,
+                remaining: TOTAL_ALLOWED - usedDays
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });

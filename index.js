@@ -38,7 +38,6 @@ app.use('/api/teachers', require('./src/routes/teachers'));
 app.use('/api/attendance', require('./src/routes/attendance'));
 app.use('/api/exams', require('./src/routes/exams'));
 app.use('/api/marks', require('./src/routes/marks'));
-app.use('/api/assignments', require('./src/routes/assignments'));
 app.use('/api/timetable', require('./src/routes/timetable'));
 app.use('/api/leaves', require('./src/routes/leaves'));
 app.use('/api/fees', require('./src/routes/fees'));

@@ -1,15 +1,30 @@
 const mongoose = require('mongoose');
 
 const leaveRequestSchema = new mongoose.Schema({
-    student: {
+    applicant: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'Student is required']
+        required: [true, 'Applicant is required']
+    },
+    applicantRole: {
+        type: String,
+        enum: ['student', 'class teacher', 'admin', 'super admin'],
+        required: true
     },
     class: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Class',
-        required: [true, 'Class is required']
+        ref: 'Class'
+        // Optional, required only if applicant is a student
+    },
+    leaveType: {
+        type: String,
+        enum: ['full', 'half'],
+        default: 'full'
+    },
+    halfDaySlot: {
+        type: String,
+        enum: ['morning', 'afternoon']
+        // Required if leaveType is 'half'
     },
     startDate: {
         type: Date,
@@ -33,7 +48,15 @@ const leaveRequestSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    actionReason: {
+    actionReason: { // For approval/rejection notes
+        type: String,
+        trim: true
+    },
+    rejectionReason: { // Specific reason for rejection (dropdown)
+        type: String,
+        trim: true
+    },
+    rejectionComments: { // Specific comments for rejection
         type: String,
         trim: true
     },
@@ -47,8 +70,9 @@ const leaveRequestSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-leaveRequestSchema.index({ student: 1, status: 1 });
+leaveRequestSchema.index({ applicant: 1, status: 1 });
 leaveRequestSchema.index({ class: 1, status: 1 });
 leaveRequestSchema.index({ startDate: 1, endDate: 1 });
+leaveRequestSchema.index({ applicantRole: 1, status: 1 });
 
 module.exports = mongoose.model('LeaveRequest', leaveRequestSchema);
