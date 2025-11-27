@@ -9,7 +9,7 @@ const { authenticateToken: auth, checkRole } = require('../middleware/auth');
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        const subjects = await GlobalSubject.find().sort({ name: 1 });
+        const subjects = await GlobalSubject.find().sort({ code: 1, name: 1 });
         res.json(subjects);
     } catch (err) {
         console.error(err.message);
