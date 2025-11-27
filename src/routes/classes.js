@@ -213,16 +213,14 @@ router.post('/:id/students', auth, async (req, res) => {
             });
         }
 
-        // Check authorization: must be teacher of this class OR admin/super admin
+        // Check authorization: must be admin/super admin
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
-        const isClassTeacher = classData.classTeacher &&
-            classData.classTeacher.toString() === req.user.userId;
 
-        if (!isAdmin && !isClassTeacher) {
+        if (!isAdmin) {
             return res.status(403).json({
                 success: false,
-                message: 'Only the teacher or admin can add students to this class'
+                message: 'Only admins can add students to a class'
             });
         }
 
@@ -318,16 +316,14 @@ router.delete('/:id/students/:studentId', auth, async (req, res) => {
             });
         }
 
-        // Check authorization: must be teacher of this class OR admin/super admin
+        // Check authorization: must be admin/super admin
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
-        const isClassTeacher = classData.classTeacher &&
-            classData.classTeacher.toString() === req.user.userId;
 
-        if (!isAdmin && !isClassTeacher) {
+        if (!isAdmin) {
             return res.status(403).json({
                 success: false,
-                message: 'Only the teacher or admin can remove students from this class'
+                message: 'Only admins can remove students from a class'
             });
         }
 
@@ -391,10 +387,9 @@ router.post('/:id/subjects', auth, async (req, res) => {
 
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
-        const isClassTeacher = classData.classTeacher && classData.classTeacher.toString() === req.user.userId;
 
-        if (!isAdmin && !isClassTeacher) {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+        if (!isAdmin) {
+            return res.status(403).json({ success: false, message: 'Only admins can add subjects' });
         }
 
         const newSubject = new Subject({
@@ -423,10 +418,9 @@ router.delete('/:id/subjects/:subjectId', auth, async (req, res) => {
 
         const userRole = req.user.role;
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
-        const isClassTeacher = classData.classTeacher && classData.classTeacher.toString() === req.user.userId;
 
-        if (!isAdmin && !isClassTeacher) {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+        if (!isAdmin) {
+            return res.status(403).json({ success: false, message: 'Only admins can delete subjects' });
         }
 
         // Check for content
