@@ -42,11 +42,10 @@ router.post('/mark', auth, async (req, res) => {
             const filter = {
                 user: studentId,
                 class: classId,
-                date: new Date(date).setHours(0, 0, 0, 0)
+                date: new Date(date).setHours(0, 0, 0, 0),
+                subject: subjectId || null,
+                period: period || null
             };
-
-            if (subjectId) filter.subject = subjectId;
-            if (period) filter.period = period;
 
             const existingAttendance = await Attendance.findOne(filter);
 
