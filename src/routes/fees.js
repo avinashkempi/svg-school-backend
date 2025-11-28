@@ -32,7 +32,7 @@ const generateReceiptNumber = async () => {
 // @access  Admin/Super Admin
 router.post('/structure', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
-        console.log("POST /structure body:", req.body); // Debug log
+
         const { classId, academicYearId, components, paymentSchedule, type, students } = req.body;
 
         if (!classId || !academicYearId) {

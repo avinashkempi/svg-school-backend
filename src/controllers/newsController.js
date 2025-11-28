@@ -30,7 +30,7 @@ const createNews = async (req, res) => {
     // Send push notification asynchronously (don't block response)
     setImmediate(async () => {
       try {
-        console.log('[News] Sending notification for new news...');
+
         await sendNewsNotification(news);
       } catch (error) {
         console.error('[News] Failed to send notification:', error);

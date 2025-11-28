@@ -26,6 +26,11 @@ const notificationSchema = new mongoose.Schema({
     ref: 'Class',
     default: null
   },
+  targetRole: {
+    type: String,
+    enum: ['all', 'student', 'teacher', 'staff', 'admin', 'super admin'],
+    default: 'all'
+  },
   read: {
     type: Boolean,
     default: false

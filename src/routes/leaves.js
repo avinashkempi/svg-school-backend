@@ -14,7 +14,7 @@ router.post('/apply', authenticateToken, async (req, res) => {
         const { startDate, endDate, reason, leaveType, halfDaySlot } = req.body;
 
         // Log request for debugging
-        console.log('[Leave Apply] Request from user:', req.user.userId, 'Role:', req.user.role);
+
 
         // Validate required fields
         if (!startDate || !endDate || !reason) {
@@ -112,12 +112,12 @@ router.get('/pending', authenticateToken, checkRole(['teacher', 'admin', 'super 
             query.applicantRole = { $in: ['student', 'teacher', 'admin'] };
         }
 
-        console.log('[Pending Leaves] Query:', query);
+
         const leaves = await LeaveRequest.find(query)
             .populate('applicant', 'name role')
             .populate('class', 'name section')
             .sort({ createdAt: -1 });
-        console.log('[Pending Leaves] Found:', leaves.length);
+
 
         res.status(200).json({ success: true, data: leaves });
     } catch (error) {

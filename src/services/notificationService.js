@@ -13,13 +13,13 @@ try {
 
         // Try to load from environment variable first (for production/Render)
         if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-            console.log('[Firebase] Loading service account from environment variable');
+
             serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
         }
         // Otherwise try to load from file path (for local development)
         else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
             const absolutePath = path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
-            console.log('[Firebase] Loading service account from file:', absolutePath);
+
             serviceAccount = require(absolutePath);
         }
 
@@ -27,7 +27,7 @@ try {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
             });
-            console.log('✅ Firebase Admin SDK initialized successfully');
+
         } else {
             console.warn('⚠️  Firebase credentials not found. Push notifications will not work.');
             console.warn('⚠️  Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH environment variable');
@@ -53,7 +53,7 @@ async function sendBatchNotifications(tokens, notification, data = {}) {
     }
 
     if (!tokens || tokens.length === 0) {
-        console.log('[Notifications] No tokens to send to');
+
         return { success: true, successCount: 0, failureCount: 0 };
     }
 
@@ -96,10 +96,10 @@ async function sendBatchNotifications(tokens, notification, data = {}) {
         // Clean up invalid tokens
         if (failedTokens.length > 0) {
             await FCMToken.deleteMany({ token: { $in: failedTokens } });
-            console.log(`[Notifications] Removed ${failedTokens.length} invalid tokens`);
+
         }
 
-        console.log(`[Notifications] Sent: ${totalSuccess} success, ${totalFailure} failures`);
+
 
         return {
             success: true,
@@ -128,8 +128,8 @@ async function sendNewsNotification(newsData) {
 
         const { title, description, privateNews, _id } = newsData;
 
-        console.log(`[Notifications] Sending notification for news: ${title}`);
-        console.log(`[Notifications] Private news: ${privateNews}`);
+
+
 
         // Get tokens based on privateNews flag
         let tokenQuery = {};
@@ -137,19 +137,19 @@ async function sendNewsNotification(newsData) {
         if (privateNews) {
             // Private news: only send to authenticated users
             tokenQuery = { isAuthenticated: true };
-            console.log('[Notifications] Sending to authenticated users only');
+
         } else {
             // Public news: send to all users (authenticated + guests)
-            console.log('[Notifications] Sending to all users');
+
         }
 
         const fcmTokenDocs = await FCMToken.find(tokenQuery);
         const tokens = fcmTokenDocs.map(doc => doc.token);
 
-        console.log(`[Notifications] Found ${tokens.length} tokens to send to`);
+
 
         if (tokens.length === 0) {
-            console.log('[Notifications] No tokens found, skipping notification send');
+
             return { success: true, message: 'No tokens to send to' };
         }
 
@@ -196,7 +196,7 @@ async function sendClassContentNotification(classId, content) {
         const studentIds = students.map(s => s._id);
 
         if (studentIds.length === 0) {
-            console.log('[Notifications] No students in class, skipping notification');
+
             return { success: true, message: 'No students in class' };
         }
 
@@ -204,7 +204,7 @@ async function sendClassContentNotification(classId, content) {
         const fcmTokenDocs = await FCMToken.find({ userId: { $in: studentIds } });
         const tokens = fcmTokenDocs.map(doc => doc.token);
 
-        console.log(`[Notifications] Found ${tokens.length} tokens for class ${classId}`);
+
 
         if (tokens.length === 0) {
             return { success: true, message: 'No tokens found for students' };

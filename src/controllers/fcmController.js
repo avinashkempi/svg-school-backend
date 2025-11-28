@@ -25,7 +25,7 @@ const registerFCMToken = async (req, res) => {
             fcmToken.updatedAt = new Date();
             await fcmToken.save();
 
-            console.log(`[FCM] Updated existing token for user: ${userId}`);
+
         } else {
             // Create new token
             fcmToken = new FCMToken({
@@ -36,7 +36,7 @@ const registerFCMToken = async (req, res) => {
             });
             await fcmToken.save();
 
-            console.log(`[FCM] Registered new token for user: ${userId}`);
+
         }
 
         res.status(200).json({

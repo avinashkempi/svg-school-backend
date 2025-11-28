@@ -16,6 +16,7 @@ router.get('/', auth, async (req, res) => {
         // Find notifications where:
         // 1. Recipient is the user
         // 2. OR Recipient is null AND (targetClass is null OR targetClass is user's class)
+        // 3. OR targetRole matches user's role OR targetRole is 'all'
         // AND createdAt is within reasonable time (e.g., last 30 days) - Optional optimization
 
         let query = {
@@ -23,7 +24,8 @@ router.get('/', auth, async (req, res) => {
                 { recipient: req.user.userId },
                 {
                     recipient: null,
-                    targetClass: null
+                    targetClass: null,
+                    targetRole: { $in: ['all', req.user.role] }
                 }
             ]
         };
@@ -37,6 +39,16 @@ router.get('/', auth, async (req, res) => {
                     targetClass: user.currentClass
                 });
             }
+        }
+
+        // Super Admin sees all broadcasts
+        if (req.user.role === 'super admin') {
+            query = {
+                $or: [
+                    { recipient: req.user.userId },
+                    { recipient: null } // See all broadcasts
+                ]
+            };
         }
 
         const notifications = await Notification.find(query)
@@ -98,15 +110,21 @@ router.post('/send', auth, async (req, res) => {
         }
 
         const { title, message, type, target, targetId } = req.body;
-        // target: 'all', 'class', 'user'
+        // target: 'all', 'class', 'user', 'teacher', 'staff'
 
         let recipient = null;
         let targetClass = null;
+        let targetRole = 'all';
 
         if (target === 'user') {
             recipient = targetId;
         } else if (target === 'class') {
             targetClass = targetId;
+            targetRole = 'student'; // Implicitly for students of that class
+        } else if (target === 'teacher') {
+            targetRole = 'teacher';
+        } else if (target === 'staff') {
+            targetRole = 'staff';
         }
 
         const notification = new Notification({
@@ -114,7 +132,8 @@ router.post('/send', auth, async (req, res) => {
             message,
             type: type || 'General',
             recipient,
-            targetClass
+            targetClass,
+            targetRole
         });
 
         await notification.save();
