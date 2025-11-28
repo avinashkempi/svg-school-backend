@@ -32,31 +32,49 @@ const generateReceiptNumber = async () => {
 // @access  Admin/Super Admin
 router.post('/structure', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
-        const { classId, academicYearId, components, paymentSchedule } = req.body;
+        const { classId, academicYearId, components, paymentSchedule, type, students } = req.body;
 
         // Calculate total amount
         const totalAmount = components.reduce((sum, comp) => sum + Number(comp.amount), 0);
 
-        let feeStructure = await FeeStructure.findOne({
-            class: classId,
-            academicYear: academicYearId
-        });
+        let feeStructure;
 
-        if (feeStructure) {
-            // Update existing
-            feeStructure.components = components;
-            feeStructure.paymentSchedule = paymentSchedule;
-            feeStructure.totalAmount = totalAmount;
-            feeStructure.updatedAt = Date.now();
-        } else {
-            // Create new
+        if (type === 'student_specific') {
+            // For specific students, we always create a new structure for now
             feeStructure = new FeeStructure({
                 class: classId,
                 academicYear: academicYearId,
                 components,
                 paymentSchedule,
-                totalAmount
+                totalAmount,
+                type,
+                students
             });
+        } else {
+            // Default class structure
+            feeStructure = await FeeStructure.findOne({
+                class: classId,
+                academicYear: academicYearId,
+                type: 'class_default'
+            });
+
+            if (feeStructure) {
+                // Update existing
+                feeStructure.components = components;
+                feeStructure.paymentSchedule = paymentSchedule;
+                feeStructure.totalAmount = totalAmount;
+                feeStructure.updatedAt = Date.now();
+            } else {
+                // Create new
+                feeStructure = new FeeStructure({
+                    class: classId,
+                    academicYear: academicYearId,
+                    components,
+                    paymentSchedule,
+                    totalAmount,
+                    type: 'class_default'
+                });
+            }
         }
 
         await feeStructure.save();
@@ -83,14 +101,17 @@ router.get('/structure/class/:classId', auth, async (req, res) => {
         if (classData.academicYear) {
             feeStructure = await FeeStructure.findOne({
                 class: req.params.classId,
-                academicYear: classData.academicYear
+                academicYear: classData.academicYear,
+                type: 'class_default'
             });
         }
 
         // If not found by specific academic year, get the latest one
         if (!feeStructure) {
-            feeStructure = await FeeStructure.findOne({ class: req.params.classId })
-                .sort({ createdAt: -1 });
+            feeStructure = await FeeStructure.findOne({
+                class: req.params.classId,
+                type: 'class_default'
+            }).sort({ createdAt: -1 });
         }
 
         if (!feeStructure) {
@@ -120,10 +141,19 @@ router.post('/payment', [auth, checkRole(['admin', 'super admin'])], async (req,
 
         const feeStructure = await FeeStructure.findOne({
             class: student.currentClass,
-            academicYear: student.academicYear
+            academicYear: student.academicYear,
+            type: 'class_default'
         });
 
-        if (!feeStructure) {
+        // Also check for specific structures to validate if the student has ANY fee structure
+        const specificStructures = await FeeStructure.find({
+            class: student.currentClass,
+            academicYear: student.academicYear,
+            type: 'student_specific',
+            students: studentId
+        });
+
+        if (!feeStructure && specificStructures.length === 0) {
             return res.status(400).json({ message: 'Fee structure not defined for this student\'s class' });
         }
 
@@ -133,11 +163,13 @@ router.post('/payment', [auth, checkRole(['admin', 'super admin'])], async (req,
             student: studentId,
             class: student.currentClass,
             academicYear: student.academicYear,
-            feeStructure: feeStructure._id,
+            // feeStructure: feeStructure._id, // We might need to link to specific structure if applicable, but for now we just track payment against student/class
+            // For now, let's keep it optional or link to default if available. 
+            // If we want to track against specific component, we need more complex logic.
+            // For now, we'll just link to the default one if it exists, or the first specific one.
+            feeStructure: feeStructure ? feeStructure._id : specificStructures[0]?._id,
             amount,
             paymentMethod,
-            transactionId,
-            receiptNumber,
             transactionId,
             receiptNumber,
             bookNumber,
@@ -167,14 +199,22 @@ router.get('/student/:studentId', auth, async (req, res) => {
         const student = await User.findById(req.params.studentId);
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        // Get Fee Structure
-        // Assuming current academic year
-        const feeStructure = await FeeStructure.findOne({
+        // Get Fee Structure (Default)
+        const defaultFeeStructure = await FeeStructure.findOne({
             class: student.currentClass,
-            academicYear: student.academicYear
+            academicYear: student.academicYear,
+            type: 'class_default'
         });
 
-        if (!feeStructure) {
+        // Get Specific Fee Structures
+        const specificFeeStructures = await FeeStructure.find({
+            class: student.currentClass,
+            academicYear: student.academicYear,
+            type: 'student_specific',
+            students: req.params.studentId
+        });
+
+        if (!defaultFeeStructure && specificFeeStructures.length === 0) {
             return res.json({
                 totalFees: 0,
                 paidAmount: 0,
@@ -184,6 +224,20 @@ router.get('/student/:studentId', auth, async (req, res) => {
             });
         }
 
+        // Aggregate Total Fees
+        let totalFees = 0;
+        let components = [];
+
+        if (defaultFeeStructure) {
+            totalFees += defaultFeeStructure.totalAmount;
+            components = [...defaultFeeStructure.components];
+        }
+
+        specificFeeStructures.forEach(struct => {
+            totalFees += struct.totalAmount;
+            components = [...components, ...struct.components];
+        });
+
         // Get Payments
         const payments = await FeePayment.find({
             student: req.params.studentId,
@@ -192,11 +246,14 @@ router.get('/student/:studentId', auth, async (req, res) => {
         }).sort({ paymentDate: -1 });
 
         const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
-        const pendingAmount = feeStructure.totalAmount - paidAmount;
+        const pendingAmount = totalFees - paidAmount;
 
         res.json({
-            feeStructure,
-            totalFees: feeStructure.totalAmount,
+            feeStructure: {
+                totalAmount: totalFees,
+                components: components
+            },
+            totalFees,
             paidAmount,
             pendingAmount,
             payments

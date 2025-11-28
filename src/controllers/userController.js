@@ -301,6 +301,16 @@ const searchUsers = async (req, res) => {
       filter.role = role;
     }
 
+    // Add class filter if provided
+    if (req.query.classId) {
+      filter.currentClass = req.query.classId;
+    }
+
+    // Add academic year filter if provided
+    if (req.query.academicYearId) {
+      filter.academicYear = req.query.academicYearId;
+    }
+
     const users = await User.find(filter, '-password')
       .populate('currentClass', 'name section')
       .populate('academicYear', 'name')

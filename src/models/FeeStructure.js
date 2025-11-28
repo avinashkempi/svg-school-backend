@@ -26,6 +26,15 @@ const FeeStructureSchema = new mongoose.Schema({
         amount: { type: Number },
         description: { type: String } // "Term 1", "Term 2"
     }],
+    type: {
+        type: String,
+        enum: ['class_default', 'student_specific'],
+        default: 'class_default'
+    },
+    students: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     createdAt: {
         type: Date,
         default: Date.now
@@ -36,7 +45,10 @@ const FeeStructureSchema = new mongoose.Schema({
     }
 });
 
-// Compound index to ensure one fee structure per class per academic year
-FeeStructureSchema.index({ class: 1, academicYear: 1 }, { unique: true });
+// Compound index to ensure one DEFAULT fee structure per class per academic year
+FeeStructureSchema.index(
+    { class: 1, academicYear: 1, type: 1 },
+    { unique: true, partialFilterExpression: { type: 'class_default' } }
+);
 
 module.exports = mongoose.model('FeeStructure', FeeStructureSchema);
