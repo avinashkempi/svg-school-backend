@@ -32,9 +32,17 @@ const generateReceiptNumber = async () => {
 // @access  Admin/Super Admin
 router.post('/structure', [auth, checkRole(['admin', 'super admin'])], async (req, res) => {
     try {
+        console.log("POST /structure body:", req.body); // Debug log
         const { classId, academicYearId, components, paymentSchedule, type, students } = req.body;
 
+        if (!classId || !academicYearId) {
+            return res.status(400).json({ message: "Class and Academic Year are required" });
+        }
+
         // Calculate total amount
+        if (!components || !Array.isArray(components)) {
+            return res.status(400).json({ message: "Components must be an array" });
+        }
         const totalAmount = components.reduce((sum, comp) => sum + Number(comp.amount), 0);
 
         let feeStructure;
@@ -80,8 +88,8 @@ router.post('/structure', [auth, checkRole(['admin', 'super admin'])], async (re
         await feeStructure.save();
         res.json(feeStructure);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error("Error in POST /structure:", err);
+        res.status(500).send('Server Error: ' + err.message);
     }
 });
 
@@ -115,7 +123,12 @@ router.get('/structure/class/:classId', auth, async (req, res) => {
         }
 
         if (!feeStructure) {
-            return res.status(404).json({ message: 'Fee structure not found' });
+            // Return empty structure instead of 404 to avoid client errors
+            return res.json({
+                components: [],
+                totalAmount: 0,
+                type: 'class_default'
+            });
         }
 
         res.json(feeStructure);

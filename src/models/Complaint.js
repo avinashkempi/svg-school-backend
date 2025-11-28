@@ -1,14 +1,33 @@
 const mongoose = require('mongoose');
 
 const ComplaintSchema = new mongoose.Schema({
-    student: {
+    student: { // Deprecated, use raisedBy
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    raisedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
+    role: {
+        type: String,
+        enum: ['student', 'teacher'],
+        required: true
+    },
+    visibility: {
+        type: String,
+        enum: ['teacher', 'admin', 'super_admin'],
+        required: true,
+        default: 'admin'
+    },
+    assignedTo: { // For specific teacher
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     category: {
         type: String,
-        enum: ['Academic', 'Facility', 'Transport', 'Discipline', 'Other'],
+        enum: ['Academic', 'Facility', 'Transport', 'Discipline', 'Other', 'Management'],
         required: true
     },
     title: {
